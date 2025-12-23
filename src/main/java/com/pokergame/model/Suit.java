@@ -1,4 +1,4 @@
-package com.pokergame.poker.model;
+package com.pokergame.model;
 
 public enum Suit {
     HEARTS("Hearts", "♥"),
