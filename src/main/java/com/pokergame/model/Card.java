@@ -1,4 +1,4 @@
-package com.pokergame.poker.model;
+package com.pokergame.model;
 
 /**
  * Represents a playing card with a suit and rank.

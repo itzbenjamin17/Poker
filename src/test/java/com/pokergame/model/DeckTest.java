@@ -1,4 +1,4 @@
-package com.pokergame.poker.model;
+package com.pokergame.model;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;

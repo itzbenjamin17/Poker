@@ -1,4 +1,4 @@
-package com.pokergame.poker;
+package com.pokergame;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
