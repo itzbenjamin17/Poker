@@ -235,16 +235,11 @@ public class Game {
      * @return true if the betting round is complete, false otherwise
      */
     public boolean isBettingRoundComplete() {
-        // Phase 1: Everyone must have their initial turn first (like your VB.NET logic)
         if (!everyoneHasHadInitialTurn) {
             logger.debug("Betting round not complete: Not everyone has had initial turn");
             return false;
         }
 
-        // Phase 2: Based on your VB.NET logic: While Table.Any(Function(item)
-        // item.CurrentBet < CurrentHighestBetCopy AndAlso item.HasFolded = False
-        // AndAlso item.IsAllIn = False)
-        // Betting round is complete when NO such player exists
         boolean hasPlayerWhoNeedsToAct = activePlayers.stream()
                 .anyMatch(p -> p.getCurrentBet() < currentHighestBet &&
                         !p.getHasFolded() &&
