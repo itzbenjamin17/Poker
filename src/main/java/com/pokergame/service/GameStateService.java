@@ -33,7 +33,6 @@ public class GameStateService {
     @Autowired
     private RoomService roomService;
 
-
     /**
      * Broadcasts the current game state to all players in the game.
      * Each player receives a personalized view showing only their own hole cards.
@@ -49,16 +48,13 @@ public class GameStateService {
 
         logger.debug("Broadcasting game state for game {}", gameId);
 
-
         messagingTemplate.convertAndSend("/game/" + gameId, buildPublicGameStateResponse(gameId, game));
         // Sending personalised game state to each player
         for (Player targetPlayer : game.getPlayers()) {
             messagingTemplate.convertAndSend(
-                    "/game/" + gameId + "/player/" + targetPlayer.getPlayerId(), buildPrivatePlayerState(targetPlayer)
-            );
+                    "/game/" + gameId + "/player/" + targetPlayer.getPlayerId(), buildPrivatePlayerState(targetPlayer));
         }
     }
-
 
     /**
      * Broadcasts showdown results with winner information to all players.
@@ -129,7 +125,6 @@ public class GameStateService {
         logger.debug("Showdown game state - winners: {}, winnerCount: {}, winnings per player: {}",
                 winnerNames, winnerNames.size(), winningsPerPlayer);
     }
-
 
     /**
      * Broadcasts game state with auto-advance information when all players are
@@ -211,7 +206,8 @@ public class GameStateService {
         }
 
         messagingTemplate.convertAndSend("/game/" + gameId,
-                new PlayerNotificationResponse("AUTO_ADVANCE_START","All players are all-in. Auto-advancing to showdown...",null,gameId));
+                new PlayerNotificationResponse("AUTO_ADVANCE_START",
+                        "All players are all-in. Auto-advancing to showdown...", null, gameId));
     }
 
     /**
@@ -227,7 +223,8 @@ public class GameStateService {
             return;
         }
 
-        messagingTemplate.convertAndSend("/game/" + gameId, new PlayerNotificationResponse("AUTO_ADVANCE_COMPLETE", "", null, gameId));
+        messagingTemplate.convertAndSend("/game/" + gameId,
+                new PlayerNotificationResponse("AUTO_ADVANCE_COMPLETE", "", null, gameId));
     }
 
     /**
@@ -272,11 +269,11 @@ public class GameStateService {
     /**
      * Builds a PublicGameStateResponse object to be shown to all players in a game.
      *
-     * @param gameId               the unique identifier of the game
-     * @param game                 the Game object containing current state
+     * @param gameId the unique identifier of the game
+     * @param game   the Game object containing current state
      * @return a PublicGameStateResponse
      */
-    private PublicGameStateResponse buildPublicGameStateResponse(String gameId, Game game){
+    private PublicGameStateResponse buildPublicGameStateResponse(String gameId, Game game) {
         Room room = roomService.getRoom(gameId);
         if (room == null) {
             throw new IllegalArgumentException("Room not found");
@@ -305,8 +302,7 @@ public class GameStateService {
                 game.getCommunityCards(),
                 playerStateList,
                 currentPlayer.getName(),
-                currentPlayer.getPlayerId()
-        );
+                currentPlayer.getPlayerId());
 
     }
 
@@ -316,14 +312,11 @@ public class GameStateService {
      * @param player object
      * @return a PrivatePlayerState
      */
-    private PrivatePlayerState buildPrivatePlayerState(Player player){
+    private PrivatePlayerState buildPrivatePlayerState(Player player) {
         return new PrivatePlayerState(
                 player.getPlayerId(),
-                player.getHoleCards()
-        );
+                player.getHoleCards());
 
     }
-
-
 
 }
