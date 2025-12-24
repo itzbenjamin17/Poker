@@ -1,0 +1,471 @@
+package com.pokergame.service;
+
+import com.pokergame.dto.RoomData;
+import com.pokergame.dto.request.CreateRoomRequest;
+import com.pokergame.dto.request.JoinRoomRequest;
+import com.pokergame.model.Room;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for the RoomService class.
+ */
+@ExtendWith(MockitoExtension.class)
+class RoomServiceTest {
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
+    @InjectMocks
+    private RoomService roomService;
+
+    private CreateRoomRequest validCreateRequest;
+
+    @BeforeEach
+    void setUp() {
+        validCreateRequest = new CreateRoomRequest(
+                "Test Room",
+                "HostPlayer",
+                6,
+                5,
+                10,
+                100,
+                null);
+    }
+
+    // ==================== createRoom Tests ====================
+
+    @Test
+    void createRoom_WithValidRequest_ShouldCreateRoomSuccessfully() {
+        String roomId = roomService.createRoom(validCreateRequest);
+
+        assertNotNull(roomId);
+        assertFalse(roomId.isEmpty());
+
+        Room room = roomService.getRoom(roomId);
+        assertNotNull(room);
+        assertEquals("Test Room", room.getRoomName());
+        assertEquals("HostPlayer", room.getHostName());
+        assertEquals(6, room.getMaxPlayers());
+        assertEquals(5, room.getSmallBlind());
+        assertEquals(10, room.getBigBlind());
+        assertEquals(100, room.getBuyIn());
+        assertTrue(room.getPlayers().contains("HostPlayer"));
+
+        verify(messagingTemplate).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void createRoom_WithPassword_ShouldCreatePrivateRoom() {
+        CreateRoomRequest requestWithPassword = new CreateRoomRequest(
+                "Private Room",
+                "Host",
+                4,
+                10,
+                20,
+                200,
+                "secret123");
+
+        String roomId = roomService.createRoom(requestWithPassword);
+        Room room = roomService.getRoom(roomId);
+
+        assertNotNull(room);
+        assertTrue(room.hasPassword());
+        assertTrue(room.checkPassword("secret123"));
+        assertFalse(room.checkPassword("wrongpassword"));
+    }
+
+    @Test
+    void createRoom_WithDuplicateName_ShouldThrowException() {
+        roomService.createRoom(validCreateRequest);
+
+        CreateRoomRequest duplicateRequest = new CreateRoomRequest(
+                "Test Room",
+                "AnotherHost",
+                4,
+                5,
+                10,
+                100,
+                null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.createRoom(duplicateRequest));
+
+        assertTrue(exception.getMessage().contains("already taken"));
+    }
+
+    @Test
+    void createRoom_WithDuplicateNameCaseInsensitive_ShouldThrowException() {
+        roomService.createRoom(validCreateRequest);
+
+        CreateRoomRequest duplicateRequest = new CreateRoomRequest(
+                "TEST ROOM",
+                "AnotherHost",
+                4,
+                5,
+                10,
+                100,
+                null);
+
+        assertThrows(IllegalArgumentException.class, () -> roomService.createRoom(duplicateRequest));
+    }
+
+    // ==================== joinRoom Tests ====================
+
+    @Test
+    void joinRoom_WithValidRequest_ShouldAddPlayerToRoom() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        reset(messagingTemplate);
+
+        JoinRoomRequest joinRequest = new JoinRoomRequest("Test Room", "NewPlayer", null);
+        roomService.joinRoom(joinRequest);
+
+        Room room = roomService.getRoom(roomId);
+        assertTrue(room.getPlayers().contains("NewPlayer"));
+        assertEquals(2, room.getPlayers().size());
+
+        verify(messagingTemplate).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void joinRoom_WithCorrectPassword_ShouldSucceed() {
+        CreateRoomRequest privateRoomRequest = new CreateRoomRequest(
+                "Private Room",
+                "Host",
+                4,
+                5,
+                10,
+                100,
+                "password123");
+        String roomId = roomService.createRoom(privateRoomRequest);
+        reset(messagingTemplate);
+
+        JoinRoomRequest joinRequest = new JoinRoomRequest("Private Room", "NewPlayer", "password123");
+        roomService.joinRoom(joinRequest);
+
+        Room room = roomService.getRoom(roomId);
+        assertTrue(room.getPlayers().contains("NewPlayer"));
+    }
+
+    @Test
+    void joinRoom_WithWrongPassword_ShouldThrowException() {
+        CreateRoomRequest privateRoomRequest = new CreateRoomRequest(
+                "Private Room",
+                "Host",
+                4,
+                5,
+                10,
+                100,
+                "password123");
+        roomService.createRoom(privateRoomRequest);
+
+        JoinRoomRequest joinRequest = new JoinRoomRequest("Private Room", "NewPlayer", "wrongpassword");
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.joinRoom(joinRequest));
+
+        assertEquals("Invalid password", exception.getMessage());
+    }
+
+    @Test
+    void joinRoom_WhenRoomNotFound_ShouldThrowException() {
+        JoinRoomRequest joinRequest = new JoinRoomRequest("Nonexistent Room", "Player", null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.joinRoom(joinRequest));
+
+        assertEquals("Room not found", exception.getMessage());
+    }
+
+    @Test
+    void joinRoom_WhenRoomIsFull_ShouldThrowException() {
+        CreateRoomRequest smallRoomRequest = new CreateRoomRequest(
+                "Small Room",
+                "Host",
+                2,
+                5,
+                10,
+                100,
+                null);
+        roomService.createRoom(smallRoomRequest);
+        roomService.joinRoom(new JoinRoomRequest("Small Room", "Player2", null));
+
+        JoinRoomRequest thirdPlayer = new JoinRoomRequest("Small Room", "Player3", null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.joinRoom(thirdPlayer));
+
+        assertEquals("Room is full", exception.getMessage());
+    }
+
+    @Test
+    void joinRoom_WithDuplicatePlayerName_ShouldThrowException() {
+        roomService.createRoom(validCreateRequest);
+
+        JoinRoomRequest duplicateNameRequest = new JoinRoomRequest("Test Room", "HostPlayer", null);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.joinRoom(duplicateNameRequest));
+
+        assertEquals("Player name already taken", exception.getMessage());
+    }
+
+    // ==================== leaveRoom Tests ====================
+
+    @Test
+    void leaveRoom_RegularPlayer_ShouldRemovePlayer() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+        reset(messagingTemplate);
+
+        roomService.leaveRoom(roomId, "Player2");
+
+        Room room = roomService.getRoom(roomId);
+        assertNotNull(room);
+        assertFalse(room.getPlayers().contains("Player2"));
+        assertTrue(room.getPlayers().contains("HostPlayer"));
+
+        verify(messagingTemplate).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void leaveRoom_Host_ShouldDestroyRoom() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        reset(messagingTemplate);
+
+        roomService.leaveRoom(roomId, "HostPlayer");
+
+        assertNull(roomService.getRoom(roomId));
+        verify(messagingTemplate).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void leaveRoom_LastPlayer_ShouldDestroyRoom() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+        reset(messagingTemplate);
+
+        // Host leaves first - room should be destroyed
+        roomService.leaveRoom(roomId, "HostPlayer");
+
+        assertNull(roomService.getRoom(roomId));
+    }
+
+    @Test
+    void leaveRoom_WhenRoomNotFound_ShouldThrowException() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.leaveRoom("nonexistent-id", "Player"));
+
+        assertEquals("Room not found", exception.getMessage());
+    }
+
+    // ==================== getRooms Tests ====================
+
+    @Test
+    void getRooms_WhenEmpty_ShouldReturnEmptyList() {
+        List<Room> rooms = roomService.getRooms();
+        assertTrue(rooms.isEmpty());
+    }
+
+    @Test
+    void getRooms_WithRooms_ShouldReturnAllRooms() {
+        roomService.createRoom(validCreateRequest);
+        roomService.createRoom(new CreateRoomRequest(
+                "Room 2",
+                "Host2",
+                4,
+                10,
+                20,
+                200,
+                null));
+
+        List<Room> rooms = roomService.getRooms();
+
+        assertEquals(2, rooms.size());
+    }
+
+    // ==================== getRoomData Tests ====================
+
+    @Test
+    void getRoomData_WithValidRoomId_ShouldReturnRoomData() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+
+        RoomData roomData = roomService.getRoomData(roomId);
+
+        assertNotNull(roomData);
+        assertEquals(roomId, roomData.roomId());
+        assertEquals("Test Room", roomData.roomName());
+        assertEquals(6, roomData.maxPlayers());
+        assertEquals(100, roomData.buyIn());
+        assertEquals(5, roomData.smallBlind());
+        assertEquals(10, roomData.bigBlind());
+        assertEquals("HostPlayer", roomData.hostName());
+        assertEquals(2, roomData.currentPlayers());
+        assertTrue(roomData.canStartGame());
+    }
+
+    @Test
+    void getRoomData_WithNullRoomId_ShouldThrowException() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.getRoomData(null));
+
+        assertEquals("Room ID cannot be null", exception.getMessage());
+    }
+
+    @Test
+    void getRoomData_WithNonexistentRoomId_ShouldThrowException() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> roomService.getRoomData("nonexistent-id"));
+
+        assertEquals("Room not found", exception.getMessage());
+    }
+
+    @Test
+    void getRoomData_ShouldMarkHostPlayerCorrectly() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+
+        RoomData roomData = roomService.getRoomData(roomId);
+
+        var hostPlayer = roomData.players().stream()
+                .filter(p -> p.name().equals("HostPlayer"))
+                .findFirst()
+                .orElseThrow();
+        var regularPlayer = roomData.players().stream()
+                .filter(p -> p.name().equals("Player2"))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(hostPlayer.isHost());
+        assertFalse(regularPlayer.isHost());
+    }
+
+    // ==================== getRoom Tests ====================
+
+    @Test
+    void getRoom_WithValidId_ShouldReturnRoom() {
+        String roomId = roomService.createRoom(validCreateRequest);
+
+        Room room = roomService.getRoom(roomId);
+
+        assertNotNull(room);
+        assertEquals("Test Room", room.getRoomName());
+    }
+
+    @Test
+    void getRoom_WithInvalidId_ShouldReturnNull() {
+        Room room = roomService.getRoom("nonexistent-id");
+        assertNull(room);
+    }
+
+    // ==================== findRoomByName Tests ====================
+
+    @Test
+    void findRoomByName_WithExactMatch_ShouldReturnRoom() {
+        roomService.createRoom(validCreateRequest);
+
+        Room room = roomService.findRoomByName("Test Room");
+
+        assertNotNull(room);
+        assertEquals("Test Room", room.getRoomName());
+    }
+
+    @Test
+    void findRoomByName_CaseInsensitive_ShouldReturnRoom() {
+        roomService.createRoom(validCreateRequest);
+
+        Room room = roomService.findRoomByName("test room");
+
+        assertNotNull(room);
+        assertEquals("Test Room", room.getRoomName());
+    }
+
+    @Test
+    void findRoomByName_WhenNotFound_ShouldReturnNull() {
+        Room room = roomService.findRoomByName("Nonexistent Room");
+        assertNull(room);
+    }
+
+    // ==================== isRoomHost Tests ====================
+
+    @Test
+    void isRoomHost_WithHost_ShouldReturnTrue() {
+        String roomId = roomService.createRoom(validCreateRequest);
+
+        assertTrue(roomService.isRoomHost(roomId, "HostPlayer"));
+    }
+
+    @Test
+    void isRoomHost_WithNonHost_ShouldReturnFalse() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+
+        assertFalse(roomService.isRoomHost(roomId, "Player2"));
+    }
+
+    @Test
+    void isRoomHost_WithNonexistentRoom_ShouldReturnFalse() {
+        assertFalse(roomService.isRoomHost("nonexistent-id", "Player"));
+    }
+
+    // ==================== destroyRoom Tests ====================
+
+    @Test
+    void destroyRoom_ShouldRemoveRoom() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        assertNotNull(roomService.getRoom(roomId));
+
+        roomService.destroyRoom(roomId);
+
+        assertNull(roomService.getRoom(roomId));
+        assertFalse(roomService.isRoomHost(roomId, "HostPlayer"));
+    }
+
+    @Test
+    void destroyRoom_WithNonexistentRoom_ShouldNotThrowException() {
+        assertDoesNotThrow(() -> roomService.destroyRoom("nonexistent-id"));
+    }
+
+    // ==================== canStartGame Tests ====================
+
+    @Test
+    void getRoomData_WithOnePlayer_ShouldNotBeAbleToStart() {
+        String roomId = roomService.createRoom(validCreateRequest);
+
+        RoomData roomData = roomService.getRoomData(roomId);
+
+        assertEquals(1, roomData.currentPlayers());
+        assertFalse(roomData.canStartGame());
+    }
+
+    @Test
+    void getRoomData_WithTwoPlayers_ShouldBeAbleToStart() {
+        String roomId = roomService.createRoom(validCreateRequest);
+        roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
+
+        RoomData roomData = roomService.getRoomData(roomId);
+
+        assertEquals(2, roomData.currentPlayers());
+        assertTrue(roomData.canStartGame());
+    }
+}

@@ -1,0 +1,339 @@
+package com.pokergame.service;
+
+import com.pokergame.model.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit tests for the GameStateService class.
+ */
+@ExtendWith(MockitoExtension.class)
+class GameStateServiceTest {
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
+
+    @Mock
+    private RoomService roomService;
+
+    @Mock
+    private HandEvaluatorService handEvaluator;
+
+    @InjectMocks
+    private GameStateService gameStateService;
+
+    private Game testGame;
+    private Room testRoom;
+    private List<Player> testPlayers;
+    private static final String GAME_ID = "test-game-id";
+
+    @BeforeEach
+    void setUp() {
+        testPlayers = new ArrayList<>();
+        testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 100));
+        testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 100));
+
+        testGame = new Game(GAME_ID, testPlayers, 5, 10, handEvaluator);
+
+        testRoom = new Room(
+                GAME_ID,
+                "Test Room",
+                "Player1",
+                6,
+                5,
+                10,
+                100,
+                null);
+        testRoom.addPlayer("Player1");
+        testRoom.addPlayer("Player2");
+    }
+
+    // ==================== broadcastGameState Tests ====================
+
+    @Test
+    void broadcastGameState_WithNullGame_ShouldNotBroadcast() {
+        gameStateService.broadcastGameState(GAME_ID, null);
+
+        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void broadcastGameState_WithValidGame_ShouldBroadcastToGameChannel() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastGameState_ShouldSendPrivateStateToEachPlayer() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        // Should send a private message to each player
+        for (Player player : testGame.getPlayers()) {
+            verify(messagingTemplate).convertAndSend(
+                    eq("/game/" + GAME_ID + "/player/" + player.getPlayerId()),
+                    any(Object.class));
+        }
+    }
+
+    @Test
+    void broadcastGameState_WithThreePlayers_ShouldSendThreePrivateMessages() {
+        testPlayers.add(new Player("Player3", UUID.randomUUID().toString(), 100));
+        testGame = new Game(GAME_ID, testPlayers, 5, 10, handEvaluator);
+        testRoom.addPlayer("Player3");
+
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        // 1 public message + 3 private messages = 4 total
+        verify(messagingTemplate, times(4)).convertAndSend(anyString(), any(Object.class));
+    }
+
+    // ==================== broadcastShowdownResults Tests ====================
+
+    @Test
+    void broadcastShowdownResults_WithNullGame_ShouldNotBroadcast() {
+        gameStateService.broadcastShowdownResults(GAME_ID, null, List.of(), 0);
+
+        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void broadcastShowdownResults_WithValidData_ShouldBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+        List<Player> winners = List.of(testPlayers.get(0));
+
+        gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 50);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastShowdownResults_WithNoRoom_ShouldStillBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(null);
+        List<Player> winners = List.of(testPlayers.get(0));
+
+        gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 50);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastShowdownResults_WithMultipleWinners_ShouldIncludeAllWinners() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+        List<Player> winners = List.of(testPlayers.get(0), testPlayers.get(1));
+
+        gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 25);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== broadcastGameStateWithAutoAdvance Tests
+    // ====================
+
+    @Test
+    void broadcastGameStateWithAutoAdvance_WithNullGame_ShouldNotBroadcast() {
+        gameStateService.broadcastGameStateWithAutoAdvance(GAME_ID, null, true, "Auto-advancing...");
+
+        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void broadcastGameStateWithAutoAdvance_WithValidData_ShouldBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameStateWithAutoAdvance(GAME_ID, testGame, true, "Auto-advancing...");
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastGameStateWithAutoAdvance_WhenNotAutoAdvancing_ShouldStillBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameStateWithAutoAdvance(GAME_ID, testGame, false, "Not auto-advancing");
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== broadcastAutoAdvanceNotification Tests
+    // ====================
+
+    @Test
+    void broadcastAutoAdvanceNotification_WithNullGame_ShouldNotBroadcast() {
+        gameStateService.broadcastAutoAdvanceNotification(GAME_ID, null);
+
+        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void broadcastAutoAdvanceNotification_WithValidGame_ShouldBroadcast() {
+        gameStateService.broadcastAutoAdvanceNotification(GAME_ID, testGame);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== broadcastAutoAdvanceComplete Tests ====================
+
+    @Test
+    void broadcastAutoAdvanceComplete_WithNullGame_ShouldNotBroadcast() {
+        gameStateService.broadcastAutoAdvanceComplete(GAME_ID, null);
+
+        verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
+    }
+
+    @Test
+    void broadcastAutoAdvanceComplete_WithValidGame_ShouldBroadcast() {
+        gameStateService.broadcastAutoAdvanceComplete(GAME_ID, testGame);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== sendPlayerNotification Tests ====================
+
+    @Test
+    void sendPlayerNotification_ShouldBroadcastToGameChannel() {
+        gameStateService.sendPlayerNotification(GAME_ID, "Player1", "Test message");
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void sendPlayerNotification_WithDifferentPlayers_ShouldBroadcast() {
+        gameStateService.sendPlayerNotification(GAME_ID, "Player1", "Message 1");
+        gameStateService.sendPlayerNotification(GAME_ID, "Player2", "Message 2");
+
+        verify(messagingTemplate, times(2)).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== broadcastGameEnd Tests ====================
+
+    @Test
+    void broadcastGameEnd_ShouldBroadcastWinnerInfo() {
+        Player winner = testPlayers.get(0);
+        winner.addChips(50); // Winner has more chips
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+
+        gameStateService.broadcastGameEnd(GAME_ID, winner);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), captor.capture());
+
+        Object captured = captor.getValue();
+        assertNotNull(captured);
+        assertTrue(captured instanceof Map);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> gameEndData = (Map<String, Object>) captured;
+        assertEquals("GAME_END", gameEndData.get("type"));
+        assertEquals(winner.getName(), gameEndData.get("winner"));
+        assertEquals(winner.getChips(), gameEndData.get("winnerChips"));
+        assertEquals(GAME_ID, gameEndData.get("gameId"));
+    }
+
+    @Test
+    void broadcastGameEnd_MessageShouldContainWinnerName() {
+        Player winner = testPlayers.get(0);
+
+        ArgumentCaptor<Object> captor = ArgumentCaptor.forClass(Object.class);
+        gameStateService.broadcastGameEnd(GAME_ID, winner);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), captor.capture());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> gameEndData = (Map<String, Object>) captor.getValue();
+        String message = (String) gameEndData.get("message");
+        assertTrue(message.contains(winner.getName()));
+        assertTrue(message.contains("wins"));
+    }
+
+    // ==================== Edge Case Tests ====================
+
+    @Test
+    void broadcastGameState_WhenRoomNotFound_ShouldThrowException() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> gameStateService.broadcastGameState(GAME_ID, testGame));
+    }
+
+    @Test
+    void broadcastShowdownResults_WithFoldedPlayer_ShouldMarkAsFolded() {
+        testPlayers.get(1).doAction(PlayerAction.FOLD, 0, 0);
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        List<Player> winners = List.of(testPlayers.get(0));
+        gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 100);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastShowdownResults_WithAllInPlayer_ShouldMarkAsAllIn() {
+        testPlayers.get(0).doAction(PlayerAction.ALL_IN, 0, 0);
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        List<Player> winners = List.of(testPlayers.get(0));
+        gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 100);
+
+        verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    // ==================== GamePhase Tests ====================
+
+    @Test
+    void broadcastGameState_DuringPreflop_ShouldBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+    }
+
+    @Test
+    void broadcastGameState_AfterDealingFlop_ShouldBroadcast() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+        testGame.dealHoleCards();
+        testGame.postBlinds();
+        testGame.dealFlop();
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        verify(messagingTemplate, atLeastOnce()).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
+        assertEquals(3, testGame.getCommunityCards().size());
+    }
+
+    // ==================== Multiple Broadcast Tests ====================
+
+    @Test
+    void multipleBroadcasts_ShouldAllSucceed() {
+        when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
+
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+        gameStateService.broadcastGameState(GAME_ID, testGame);
+
+        // 3 public broadcasts + 3*2 private broadcasts = 9 total
+        verify(messagingTemplate, times(9)).convertAndSend(anyString(), any(Object.class));
+    }
+}

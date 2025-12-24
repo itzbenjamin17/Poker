@@ -1,0 +1,32 @@
+package com.pokergame.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        // Enable simple broker for destinations the server broadcasts to:
+        // - /game/{gameId} - public game state for all players
+        // - /game/{gameId}/player/{playerId}/private - private data per player
+        // - /room/{roomId} - room lobby updates
+        config.enableSimpleBroker("/room", "/game");
+
+        // Prefix for destinations clients send messages TO (handled by @MessageMapping)
+        config.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // WebSocket connection endpoint (where clients connect to)
+        // Change set allowed origins when needed
+        registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:3000").withSockJS();
+    }
+
+}
