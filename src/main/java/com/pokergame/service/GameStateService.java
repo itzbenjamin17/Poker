@@ -4,6 +4,8 @@ import com.pokergame.dto.response.PrivatePlayerState;
 import com.pokergame.dto.response.PublicPlayerState;
 import com.pokergame.dto.response.PlayerNotificationResponse;
 import com.pokergame.dto.response.PublicGameStateResponse;
+import com.pokergame.enums.PlayerStatus;
+import com.pokergame.enums.ResponseMessage;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -88,8 +90,8 @@ public class GameStateService {
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
             boolean isWinner = winners.contains(player);
             boolean isActive = !player.getHasFolded() && !player.getIsOut();
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? PlayerStatus.OUT.getStatus() : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             return new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),
@@ -156,8 +158,8 @@ public class GameStateService {
 
         // Convert players to PlayerState DTOs
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             boolean isCurrentPlayer = player.equals(currentPlayer);
             return new PublicPlayerState(
                     player.getPlayerId(),
@@ -206,7 +208,7 @@ public class GameStateService {
         }
 
         messagingTemplate.convertAndSend("/game/" + gameId,
-                new PlayerNotificationResponse("AUTO_ADVANCE_START",
+                new PlayerNotificationResponse(ResponseMessage.AUTO_ADVANCE_START.getMessage(),
                         "All players are all-in. Auto-advancing to showdown...", null, gameId));
     }
 
@@ -224,7 +226,7 @@ public class GameStateService {
         }
 
         messagingTemplate.convertAndSend("/game/" + gameId,
-                new PlayerNotificationResponse("AUTO_ADVANCE_COMPLETE", "", null, gameId));
+                new PlayerNotificationResponse(ResponseMessage.AUTO_ADVANCE_COMPLETE.getMessage(), "", null, gameId));
     }
 
     /**
@@ -254,7 +256,7 @@ public class GameStateService {
      */
     public void broadcastGameEnd(String gameId, Player winner) {
         Map<String, Object> gameEndData = new HashMap<>();
-        gameEndData.put("type", "GAME_END");
+        gameEndData.put("type", ResponseMessage.GAME_END.getMessage());
         gameEndData.put("winner", winner.getName());
         gameEndData.put("winnerChips", winner.getChips());
         gameEndData.put("gameId", gameId);
@@ -281,8 +283,8 @@ public class GameStateService {
         List<PublicPlayerState> playerStateList = new ArrayList<>();
         Player currentPlayer = game.getCurrentPlayer();
         for (Player player : game.getPlayers()) {
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             playerStateList.add(new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),

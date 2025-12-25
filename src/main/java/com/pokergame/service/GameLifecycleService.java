@@ -1,6 +1,7 @@
 package com.pokergame.service;
 
 import com.pokergame.dto.response.ApiResponse;
+import com.pokergame.enums.ResponseMessage;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -71,7 +72,7 @@ public class GameLifecycleService {
         gameStartMessage.put("gameId", roomId);
         gameStartMessage.put("message", "Game started! Redirecting to game...");
 
-        messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, "GAME_STARTED", gameStartMessage));
+        messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, ResponseMessage.GAME_STARTED.getMessage(), gameStartMessage));
 
         logger.info("Game created and started for room: {} with {} players", roomId, players.size());
 
