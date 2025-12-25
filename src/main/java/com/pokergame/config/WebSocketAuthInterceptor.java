@@ -50,9 +50,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
                     logger.debug("WebSocket authenticated for player: {}", playerName);
                 } else {
+                    // Log invalid token but do not reject the handshake; leave session
+                    // unauthenticated
                     logger.warn("Invalid JWT token in WebSocket CONNECT");
                 }
             } else {
+                // No Authorization header is fine for public handshake; do not reject
+                // connection
                 logger.debug("No Authorization header in WebSocket CONNECT");
             }
         }

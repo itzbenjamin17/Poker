@@ -7,9 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -41,9 +41,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtService.isTokenValid(token)) {
                 String playerName = jwtService.extractPlayerName(token);
 
-                // Create authentication object with player name as principal
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(playerName,
-                        null, Collections.emptyList());
+                // Create pre-authenticated token (authentication already occurred via JWT
+                // validation)
+                PreAuthenticatedAuthenticationToken authentication = new PreAuthenticatedAuthenticationToken(
+                        playerName, token, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // Set in security context - now Principal.getName() returns playerName
