@@ -61,8 +61,8 @@ class PlayerActionServiceTest {
 
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.ResourceNotFoundException exception = assertThrows(
+                com.pokergame.exception.ResourceNotFoundException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, "Player1"));
 
         assertTrue(exception.getMessage().contains("Game not found"));
@@ -81,8 +81,8 @@ class PlayerActionServiceTest {
 
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        SecurityException exception = assertThrows(
-                SecurityException.class,
+        com.pokergame.exception.UnauthorizedActionException exception = assertThrows(
+                com.pokergame.exception.UnauthorizedActionException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, nonCurrentPlayerName));
 
         assertTrue(exception.getMessage().contains("not your turn"));

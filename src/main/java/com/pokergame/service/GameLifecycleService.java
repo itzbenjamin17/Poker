@@ -51,11 +51,11 @@ public class GameLifecycleService {
     public String createGameFromRoom(String roomId) {
         Room room = roomService.getRoom(roomId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
         }
 
         if (room.getPlayers().size() < 2) {
-            throw new IllegalArgumentException("Need at least 2 players to start game");
+            throw new com.pokergame.exception.BadRequestException("Need at least 2 players to start game");
         }
 
         // Create the actual poker game
@@ -123,7 +123,7 @@ public class GameLifecycleService {
     public void leaveGame(String gameId, String playerName) {
         Game game = getGame(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Game not found");
         }
 
         // Find and remove the player from the game

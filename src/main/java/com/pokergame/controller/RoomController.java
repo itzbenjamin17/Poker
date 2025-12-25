@@ -132,7 +132,7 @@ public class RoomController {
 
         if (!roomService.isRoomHost(roomId, playerName)) {
             logger.warn("Non-host player {} attempted to start game for room {}", playerName, roomId);
-            throw new SecurityException("Only the room host can start the game.");
+            throw new com.pokergame.exception.UnauthorizedActionException("Only the room host can start the game.");
         }
 
         logger.info("Host {} authorized to start game for room {}", playerName, roomId);

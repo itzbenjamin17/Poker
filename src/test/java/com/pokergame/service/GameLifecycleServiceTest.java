@@ -12,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import static org.junit.jupiter.api.Assertions.*;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -86,8 +88,8 @@ class GameLifecycleServiceTest {
     void createGameFromRoom_WhenRoomNotFound_ShouldThrowException() {
         when(roomService.getRoom(ROOM_ID)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
                 () -> gameLifecycleService.createGameFromRoom(ROOM_ID));
 
         assertEquals("Room not found", exception.getMessage());
@@ -108,8 +110,8 @@ class GameLifecycleServiceTest {
 
         when(roomService.getRoom(ROOM_ID)).thenReturn(onePlayerRoom);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> gameLifecycleService.createGameFromRoom(ROOM_ID));
 
         assertEquals("Need at least 2 players to start game", exception.getMessage());
@@ -197,8 +199,8 @@ class GameLifecycleServiceTest {
 
     @Test
     void leaveGame_WhenGameNotFound_ShouldThrowException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
                 () -> gameLifecycleService.leaveGame("nonexistent-id", "Player"));
 
         assertEquals("Game not found", exception.getMessage());

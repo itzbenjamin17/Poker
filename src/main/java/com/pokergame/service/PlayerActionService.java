@@ -42,7 +42,7 @@ public class PlayerActionService {
     public void processPlayerAction(String gameId, PlayerActionRequest actionRequest, String playerName) {
         Game game = gameLifecycleService.getGame(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found when processing player action in game: " + gameId);
+            throw new com.pokergame.exception.ResourceNotFoundException("Game not found when processing player action in game: " + gameId);
         }
 
         // Synchronize on the game object to prevent concurrent modifications
@@ -58,7 +58,7 @@ public class PlayerActionService {
             if (!currentPlayer.getName().equals(playerName)) {
                 logger.warn("Player name mismatch: expected {}, got {}",
                         currentPlayer.getName(), playerName);
-                throw new SecurityException("It's not your turn. Current player is: " + currentPlayer.getName());
+                throw new com.pokergame.exception.UnauthorizedActionException("It's not your turn. Current player is: " + currentPlayer.getName());
             }
 
             PlayerDecision decision = new PlayerDecision(

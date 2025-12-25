@@ -99,8 +99,8 @@ class RoomServiceTest {
                 100,
                 null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.BadRequestException exception = assertThrows(
+                com.pokergame.exception.BadRequestException.class,
                 () -> roomService.createRoom(duplicateRequest));
 
         assertTrue(exception.getMessage().contains("already taken"));
@@ -119,7 +119,7 @@ class RoomServiceTest {
                 100,
                 null);
 
-        assertThrows(IllegalArgumentException.class, () -> roomService.createRoom(duplicateRequest));
+        assertThrows(com.pokergame.exception.BadRequestException.class, () -> roomService.createRoom(duplicateRequest));
     }
 
     // ==================== joinRoom Tests ====================
@@ -173,8 +173,8 @@ class RoomServiceTest {
 
         JoinRoomRequest joinRequest = new JoinRoomRequest("Private Room", "NewPlayer", "wrongpassword");
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.BadRequestException exception = assertThrows(
+                com.pokergame.exception.BadRequestException.class,
                 () -> roomService.joinRoom(joinRequest));
 
         assertEquals("Invalid password", exception.getMessage());
@@ -184,8 +184,8 @@ class RoomServiceTest {
     void joinRoom_WhenRoomNotFound_ShouldThrowException() {
         JoinRoomRequest joinRequest = new JoinRoomRequest("Nonexistent Room", "Player", null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.ResourceNotFoundException exception = assertThrows(
+                com.pokergame.exception.ResourceNotFoundException.class,
                 () -> roomService.joinRoom(joinRequest));
 
         assertEquals("Room not found", exception.getMessage());
@@ -206,8 +206,8 @@ class RoomServiceTest {
 
         JoinRoomRequest thirdPlayer = new JoinRoomRequest("Small Room", "Player3", null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.BadRequestException exception = assertThrows(
+                com.pokergame.exception.BadRequestException.class,
                 () -> roomService.joinRoom(thirdPlayer));
 
         assertEquals("Room is full", exception.getMessage());
@@ -219,8 +219,8 @@ class RoomServiceTest {
 
         JoinRoomRequest duplicateNameRequest = new JoinRoomRequest("Test Room", "HostPlayer", null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.BadRequestException exception = assertThrows(
+                com.pokergame.exception.BadRequestException.class,
                 () -> roomService.joinRoom(duplicateNameRequest));
 
         assertEquals("Player name already taken", exception.getMessage());
@@ -269,8 +269,8 @@ class RoomServiceTest {
 
     @Test
     void leaveRoom_WhenRoomNotFound_ShouldThrowException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.ResourceNotFoundException exception = assertThrows(
+                com.pokergame.exception.ResourceNotFoundException.class,
                 () -> roomService.leaveRoom("nonexistent-id", "Player"));
 
         assertEquals("Room not found", exception.getMessage());
@@ -324,8 +324,8 @@ class RoomServiceTest {
 
     @Test
     void getRoomData_WithNullRoomId_ShouldThrowException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.BadRequestException exception = assertThrows(
+                com.pokergame.exception.BadRequestException.class,
                 () -> roomService.getRoomData(null));
 
         assertEquals("Room ID cannot be null", exception.getMessage());
@@ -333,8 +333,8 @@ class RoomServiceTest {
 
     @Test
     void getRoomData_WithNonexistentRoomId_ShouldThrowException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.ResourceNotFoundException exception = assertThrows(
+                com.pokergame.exception.ResourceNotFoundException.class,
                 () -> roomService.getRoomData("nonexistent-id"));
 
         assertEquals("Room not found", exception.getMessage());

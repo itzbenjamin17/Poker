@@ -43,8 +43,8 @@ public class RoomService {
      */
     public String createRoom(CreateRoomRequest request) {
         if (isRoomNameTaken(request.getRoomName())) {
-            throw new IllegalArgumentException(
-                    "Room name '" + request.getRoomName() + "' is already taken. Please choose a different name.");
+            throw new com.pokergame.exception.BadRequestException(
+                "Room name '" + request.getRoomName() + "' is already taken. Please choose a different name.");
         }
 
         String roomId = UUID.randomUUID().toString();
@@ -88,28 +88,28 @@ public class RoomService {
     public String joinRoom(JoinRoomRequest joinRequest) {
         Room foundRoom = findRoomByName(joinRequest.roomName());
         if (foundRoom == null) {
-            throw new IllegalArgumentException("Room not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
         }
 
         String roomId = foundRoom.getRoomId();
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
         }
 
         // Check password if room is private
         if (room.hasPassword() && !room.checkPassword(joinRequest.password())) {
-            throw new IllegalArgumentException("Invalid password");
+            throw new com.pokergame.exception.BadRequestException("Invalid password");
         }
 
         // Check if room is full
         if (room.getPlayers().size() >= room.getMaxPlayers()) {
-            throw new IllegalArgumentException("Room is full");
+            throw new com.pokergame.exception.BadRequestException("Room is full");
         }
 
         // Check if player name already exists
         if (room.hasPlayer(joinRequest.playerName())) {
-            throw new IllegalArgumentException("Player name already taken");
+            throw new com.pokergame.exception.BadRequestException("Player name already taken");
         }
 
         room.addPlayer(joinRequest.playerName());
@@ -134,7 +134,7 @@ public class RoomService {
     public void leaveRoom(String roomId, String playerName) {
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
         }
 
         // Check if the leaving player is the host
@@ -180,11 +180,11 @@ public class RoomService {
      */
     public RoomDataResponse getRoomData(String roomId) {
         if (roomId == null) {
-            throw new IllegalArgumentException("Room ID cannot be null");
+            throw new com.pokergame.exception.BadRequestException("Room ID cannot be null");
         }
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
         }
 
         // Convert player names to PlayerInfoDTO objects
