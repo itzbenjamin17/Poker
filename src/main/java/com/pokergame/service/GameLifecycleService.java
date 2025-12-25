@@ -75,7 +75,6 @@ public class GameLifecycleService {
 
         logger.info("Game created and started for room: {} with {} players", roomId, players.size());
 
-        // Initialize the game properly
         startNewHand(roomId);
 
         return roomId;
@@ -198,7 +197,7 @@ public class GameLifecycleService {
         }
 
         gameStateService.broadcastGameEnd(gameId, winner);
-
+        // TODO: spawning a separate thread for each game end might not be scalable, use a scheduled task executor instead
         // Wait a few seconds for players to see the result, then destroy the room
         new Thread(() -> {
             try {

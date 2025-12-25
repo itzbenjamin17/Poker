@@ -35,7 +35,7 @@ public class GameStateService {
 
     /**
      * Broadcasts the current game state to all players in the game.
-     * Each player receives a personalized view showing only their own hole cards.
+     * Each player receives a personalised view showing only their own hole cards.
      *
      * @param gameId the unique identifier of the game
      * @param game   the Game object containing the current state
@@ -49,7 +49,8 @@ public class GameStateService {
         logger.debug("Broadcasting game state for game {}", gameId);
 
         messagingTemplate.convertAndSend("/game/" + gameId, buildPublicGameStateResponse(gameId, game));
-        // Sending personalised game state to each player
+        
+        // Sending a personalised game state to each player
         for (Player targetPlayer : game.getPlayers()) {
             messagingTemplate.convertAndSend(
                     "/game/" + gameId + "/player/" + targetPlayer.getPlayerId(), buildPrivatePlayerState(targetPlayer));
@@ -73,7 +74,6 @@ public class GameStateService {
 
         // Get room information
         Room room = roomService.getRoom(gameId);
-        String roomName = room != null ? room.getRoomName() : "";
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -84,9 +84,10 @@ public class GameStateService {
         // Get winner names
         List<String> winnerNames = winners.stream().map(Player::getName).toList();
 
-        // Convert players to PlayerState DTOs with showdown information
+        // Convert players to PublicPlayerState DTOs with showdown information
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
             boolean isWinner = winners.contains(player);
+            boolean isActive = !player.getHasFolded() && !player.getIsOut();
             String status = player.getHasFolded() ? "FOLDED"
                     : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
             return new PublicPlayerState(
@@ -98,8 +99,8 @@ public class GameStateService {
                     player.getIsAllIn(),
                     false, // isCurrentPlayer not relevant during showdown
                     player.getHasFolded(),
-                    isWinner ? player.getHandRank() : null,
-                    isWinner ? player.getBestHand() : List.of(),
+                    isActive ? player.getHandRank() : null,
+                    isActive ? player.getBestHand() : List.of(),
                     isWinner,
                     isWinner ? winningsPerPlayer : 0);
         }).toList();
@@ -146,7 +147,6 @@ public class GameStateService {
 
         // Get room information
         Room room = roomService.getRoom(gameId);
-        String roomName = room != null ? room.getRoomName() : "";
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -271,7 +271,7 @@ public class GameStateService {
      *
      * @param gameId the unique identifier of the game
      * @param game   the Game object containing current state
-     * @return a PublicGameStateResponse
+     * @return a {@link PublicGameStateResponse}
      */
     private PublicGameStateResponse buildPublicGameStateResponse(String gameId, Game game) {
         Room room = roomService.getRoom(gameId);
@@ -310,7 +310,7 @@ public class GameStateService {
      * Builds a PrivatePlayerState object to show to specific players.
      *
      * @param player object
-     * @return a PrivatePlayerState
+     * @return a {@link PrivatePlayerState}
      */
     private PrivatePlayerState buildPrivatePlayerState(Player player) {
         return new PrivatePlayerState(

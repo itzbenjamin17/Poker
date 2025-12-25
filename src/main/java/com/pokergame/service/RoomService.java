@@ -64,7 +64,8 @@ public class RoomService {
         rooms.put(roomId, room);
         roomHosts.put(roomId, request.getPlayerName());
 
-        messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, "ROOM_CREATED", getRoomData(roomId)));
+        messagingTemplate.convertAndSend("/rooms" + roomId,
+                new ApiResponse<>(true, "ROOM_CREATED", getRoomData(roomId)));
 
         logger.info("Room created: {} (ID: {}) by host: {}",
                 request.getRoomName(), roomId, request.getPlayerName());
@@ -79,10 +80,11 @@ public class RoomService {
      *
      * @param joinRequest the request containing room name, player name, and
      *                    password
+     * @return the room ID of the joined room
      * @throws IllegalArgumentException if room not found, password invalid, room
      *                                  full, or name taken
      */
-    public void joinRoom(JoinRoomRequest joinRequest) {
+    public String joinRoom(JoinRoomRequest joinRequest) {
         Room foundRoom = findRoomByName(joinRequest.roomName());
         if (foundRoom == null) {
             throw new IllegalArgumentException("Room not found");
@@ -113,9 +115,11 @@ public class RoomService {
 
         logger.info("Player {} joined room: {}", joinRequest.playerName(), room.getRoomName());
 
-        messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, "PLAYER_JOINED", getRoomData(roomId)));
-    }
+        messagingTemplate.convertAndSend("/rooms" + roomId,
+                new ApiResponse<>(true, "PLAYER_JOINED", getRoomData(roomId)));
 
+        return roomId;
+    }
 
     /**
      * Removes a player from a room. If the host leaves, the entire room is
@@ -142,7 +146,8 @@ public class RoomService {
             // Regular player leaving - just remove them from the room
             room.removePlayer(playerName);
             logger.info("Player {} left room: {}", playerName, room.getRoomName());
-            messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, "PLAYER_LEFT", getRoomData(roomId)));
+            messagingTemplate.convertAndSend("/rooms" + roomId,
+                    new ApiResponse<>(true, "PLAYER_LEFT", getRoomData(roomId)));
 
             // If no players left after removal, also destroy the room
             if (room.getPlayers().isEmpty()) {
@@ -152,7 +157,6 @@ public class RoomService {
             }
         }
     }
-
 
     /**
      * Retrieves all currently available rooms.
@@ -185,7 +189,7 @@ public class RoomService {
                 .map(playerName -> new PlayerJoinInfo(
                         playerName,
                         isRoomHost(roomId, playerName),
-                        "recently" // Placeholder as in original logic
+                        "recently" // come back to this and change to actual time
                 ))
                 .collect(Collectors.toList());
 
