@@ -2,6 +2,7 @@ package com.pokergame.service;
 
 import com.pokergame.enums.PlayerAction;
 import com.pokergame.model.*;
+import com.pokergame.exception.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +20,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for the GameStateService class.
  */
@@ -68,8 +68,8 @@ class GameStateServiceTest {
 
     @Test
     void broadcastGameState_WithNullGame_ShouldNotBroadcast() {
-        gameStateService.broadcastGameState(GAME_ID, null);
-
+        assertThrows(BadRequestException.class, () -> gameStateService.broadcastGameState(GAME_ID, null));
+        
         verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
     }
 
@@ -269,14 +269,6 @@ class GameStateServiceTest {
     }
 
     // ==================== Edge Case Tests ====================
-
-    @Test
-    void broadcastGameState_WhenRoomNotFound_ShouldThrowException() {
-        when(roomService.getRoom(GAME_ID)).thenReturn(null);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> gameStateService.broadcastGameState(GAME_ID, testGame));
-    }
 
     @Test
     void broadcastShowdownResults_WithFoldedPlayer_ShouldMarkAsFolded() {

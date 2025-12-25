@@ -2,6 +2,9 @@ package com.pokergame.service;
 
 import com.pokergame.dto.response.ApiResponse;
 import com.pokergame.enums.ResponseMessage;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -45,17 +48,22 @@ public class GameLifecycleService {
      *
      * @param roomId the unique identifier of the room to convert to a game
      * @return the game ID (same as room ID) of the newly created game
-     * @throws IllegalArgumentException if room not found or has fewer than 2
-     *                                  players
+     * @throws UnauthorisedActionException if the room has fewer than 2 players
+     * @throws ResourceNotFoundException   if the room is not found
+     *
      */
     public String createGameFromRoom(String roomId) {
         Room room = roomService.getRoom(roomId);
         if (room == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
+            logger.warn("Game creation failed: room not found for id {}", roomId);
+            throw new ResourceNotFoundException("Room not found");
         }
 
         if (room.getPlayers().size() < 2) {
-            throw new com.pokergame.exception.BadRequestException("Need at least 2 players to start game");
+            logger.warn("Game creation failed: not enough players in room {} (count: {})", roomId,
+                    room.getPlayers().size());
+            throw new UnauthorisedActionException(
+                    "Need at least 2 players to start game. Please wait for more players to join.");
         }
 
         // Create the actual poker game
@@ -72,7 +80,8 @@ public class GameLifecycleService {
         gameStartMessage.put("gameId", roomId);
         gameStartMessage.put("message", "Game started! Redirecting to game...");
 
-        messagingTemplate.convertAndSend("/rooms" + roomId, new ApiResponse<>(true, ResponseMessage.GAME_STARTED.getMessage(), gameStartMessage));
+        messagingTemplate.convertAndSend("/rooms" + roomId,
+                new ApiResponse<>(true, ResponseMessage.GAME_STARTED.getMessage(), gameStartMessage));
 
         logger.info("Game created and started for room: {} with {} players", roomId, players.size());
 
@@ -118,12 +127,14 @@ public class GameLifecycleService {
      *
      * @param gameId     the unique identifier of the game
      * @param playerName the name of the player leaving the game
-     * @throws IllegalArgumentException if game or player not found
+     * @throws BadRequestException       if game or player not found
+     * @throws ResourceNotFoundException if the game is not found
      */
     public void leaveGame(String gameId, String playerName) {
         Game game = getGame(gameId);
         if (game == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Game not found");
+            logger.warn("Remove player failed: game not found for id {} (player: {})", gameId, playerName);
+            throw new ResourceNotFoundException("Game not found");
         }
 
         // Find and remove the player from the game
@@ -133,7 +144,8 @@ public class GameLifecycleService {
                 .orElse(null);
 
         if (playerToRemove == null) {
-            throw new IllegalArgumentException("Player not found in game");
+            logger.warn("Remove player failed: player '{}' not found in game {}", playerName, gameId);
+            throw new BadRequestException("Player not found in game");
         }
 
         // Check if the leaving player was the current player
@@ -198,7 +210,8 @@ public class GameLifecycleService {
         }
 
         gameStateService.broadcastGameEnd(gameId, winner);
-        // TODO: spawning a separate thread for each game end might not be scalable, use a scheduled task executor instead
+        // TODO: spawning a separate thread for each game end might not be scalable, use
+        // a scheduled task executor instead
         // Wait a few seconds for players to see the result, then destroy the room
         new Thread(() -> {
             try {

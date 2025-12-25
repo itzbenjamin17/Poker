@@ -2,6 +2,7 @@ package com.pokergame.model;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import com.pokergame.exception.BadRequestException;
 
 import java.time.LocalDateTime;
 
@@ -44,64 +45,64 @@ class RoomTest {
 
     @Test
     void testRoomCreationWithNullRoomId() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room(null, "Room", "Host", 6, 10, 20, 1000, null));
         assertEquals("Room ID cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithEmptyRoomId() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("   ", "Room", "Host", 6, 10, 20, 1000, null));
         assertEquals("Room ID cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithNullRoomName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", null, "Host", 6, 10, 20, 1000, null));
         assertEquals("Room name cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithEmptyRoomName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "   ", "Host", 6, 10, 20, 1000, null));
         assertEquals("Room name cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithNullHostName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", null, 6, 10, 20, 1000, null));
         assertEquals("Host name cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithEmptyHostName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "   ", 6, 10, 20, 1000, null));
         assertEquals("Host name cannot be null or empty.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithTooFewPlayers() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "Host", 1, 10, 20, 1000, null));
         assertEquals("Max players must be between 2 and 10.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithTooManyPlayers() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "Host", 11, 10, 20, 1000, null));
         assertEquals("Max players must be between 2 and 10.", exception.getMessage());
     }
@@ -120,24 +121,24 @@ class RoomTest {
 
     @Test
     void testRoomCreationWithInvalidSmallBlind() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "Host", 6, 0, 20, 1000, null));
         assertEquals("Small blind must be at least 1.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithNegativeSmallBlind() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "Host", 6, -5, 20, 1000, null));
         assertEquals("Small blind must be at least 1.", exception.getMessage());
     }
 
     @Test
     void testRoomCreationWithBigBlindLessThanSmallBlind() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Room("room123", "Room", "Host", 6, 20, 10, 1000, null));
         assertEquals("Big blind must be greater than or equal to the small blind.", exception.getMessage());
     }

@@ -3,11 +3,15 @@ package com.pokergame.service;
 import com.pokergame.model.Card;
 import java.util.*;
 import java.util.stream.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.pokergame.model.HandEvaluationResult;
 import com.pokergame.enums.HandRank;
 import com.pokergame.enums.Rank;
 import com.pokergame.enums.Suit;
+import com.pokergame.exception.BadRequestException;
+
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class HandEvaluatorService {
+    private static final Logger logger = LoggerFactory.getLogger(HandEvaluatorService.class);
 
     /**
      * Generates all possible combinations of a specified number of cards from a
@@ -470,11 +475,12 @@ public class HandEvaluatorService {
      * @param cards the 5-card hand to evaluate (must contain exactly 5 cards,
      *              sorted by value ascending)
      * @return the HandRank of the evaluated hand
-     * @throws IllegalArgumentException if the hand doesn't contain exactly 5 cards
+     * @throws BadRequestException if the hand doesn't contain exactly 5 cards
      */
     public HandRank evaluateHand(List<Card> cards) {
         if (cards.size() != 5) {
-            throw new IllegalArgumentException("Invalid number of cards: " + cards.size());
+            logger.error("Invalid hand size: {}, expected 5", cards.size());
+            throw new BadRequestException("Invalid number of cards: " + cards.size());
         }
 
         if (isRoyalFlush(cards))

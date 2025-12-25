@@ -2,6 +2,8 @@ package com.pokergame.service;
 
 import com.pokergame.dto.internal.PlayerDecision;
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.exception.UnauthorisedActionException;
+import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.model.Game;
 import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Player;
@@ -37,12 +39,16 @@ public class PlayerActionService {
      * @param gameId        the unique identifier of the game
      * @param actionRequest the action request containing action type and amount
      * @param playerName    the authenticated player name (from JWT Principal)
-     * @throws SecurityException if the requesting player is not the current player
+     * @throws UnauthorisedActionException if the requesting player is not the
+     *                                     current player
+     * @throws ResourceNotFoundException   if the game is not found
      */
     public void processPlayerAction(String gameId, PlayerActionRequest actionRequest, String playerName) {
         Game game = gameLifecycleService.getGame(gameId);
         if (game == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Game not found when processing player action in game: " + gameId);
+            logger.warn("Game not found for ID: {} when trying to process player action", gameId);
+            throw new ResourceNotFoundException(
+                    "Game not found:");
         }
 
         // Synchronize on the game object to prevent concurrent modifications
@@ -58,7 +64,8 @@ public class PlayerActionService {
             if (!currentPlayer.getName().equals(playerName)) {
                 logger.warn("Player name mismatch: expected {}, got {}",
                         currentPlayer.getName(), playerName);
-                throw new com.pokergame.exception.UnauthorizedActionException("It's not your turn. Current player is: " + currentPlayer.getName());
+                throw new UnauthorisedActionException(
+                        "It's not your turn. Current player is: " + currentPlayer.getName());
             }
 
             PlayerDecision decision = new PlayerDecision(
@@ -124,7 +131,7 @@ public class PlayerActionService {
             }
 
             logger.debug("Player action processing complete for game {}", gameId);
-        } // End synchronized block
+        } // End synchronised block
     }
 
     /**

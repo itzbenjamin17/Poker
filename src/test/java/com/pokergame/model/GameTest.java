@@ -2,6 +2,8 @@ package com.pokergame.model;
 
 import com.pokergame.dto.internal.PlayerDecision;
 import com.pokergame.enums.*;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.service.HandEvaluatorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,34 +53,34 @@ class GameTest {
 
     @Test
     void testGameCreationWithNullGameId() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Game(null, players, 10, 20, mockHandEvaluator));
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> new Game(null, players, 10, 20, mockHandEvaluator));
         assertEquals("Game ID cannot be null or empty", exception.getMessage());
     }
 
     @Test
     void testGameCreationWithEmptyGameId() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Game("   ", players, 10, 20, mockHandEvaluator));
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> new Game("   ", players, 10, 20, mockHandEvaluator));
         assertEquals("Game ID cannot be null or empty", exception.getMessage());
     }
 
     @Test
     void testGameCreationWithInsufficientPlayers() {
         List<Player> onePlayer = List.of(new Player("Solo", "p1", 1000));
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Game("game123", onePlayer, 10, 20, mockHandEvaluator));
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> new Game("game123", onePlayer, 10, 20, mockHandEvaluator));
         assertEquals("At least 2 players are required to start a game", exception.getMessage());
     }
 
     @Test
     void testGameCreationWithNullPlayersList() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Game("game123", null, 10, 20, mockHandEvaluator));
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> new Game("game123", null, 10, 20, mockHandEvaluator));
         assertEquals("At least 2 players are required to start a game", exception.getMessage());
     }
 
@@ -88,10 +90,10 @@ class GameTest {
         playersWithNull.add(new Player("Player1", "p1", 1000));
         playersWithNull.add(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> new Game("game123", playersWithNull, 10, 20, mockHandEvaluator));
-        assertEquals("Player list cannot contain null elements", exception.getMessage());
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
+            () -> new Game("game123", playersWithNull, 10, 20, mockHandEvaluator));
+        assertEquals("Invalid players list. Please try again.", exception.getMessage());
     }
 
     @Test
@@ -220,8 +222,8 @@ class GameTest {
         // Try to raise by only 5 (total 15), which is less than current highest (20)
         PlayerDecision decision = new PlayerDecision(PlayerAction.RAISE, 5, player.getPlayerId());
 
-        assertThrows(IllegalArgumentException.class,
-                () -> game.processPlayerDecision(player, decision));
+        assertThrows(UnauthorisedActionException.class,
+            () -> game.processPlayerDecision(player, decision));
     }
 
     @Test

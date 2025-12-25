@@ -28,8 +28,8 @@ public class ControllerExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
-    @ExceptionHandler(UnauthorizedActionException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(UnauthorizedActionException ex) {
+    @ExceptionHandler(UnauthorisedActionException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedActionException(UnauthorisedActionException ex) {
         logger.warn("Unauthorized action: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(HttpStatus.FORBIDDEN.value(), "Forbidden", ex.getMessage());
         // returns 403 Forbidden

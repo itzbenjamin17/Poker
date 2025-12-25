@@ -1,7 +1,7 @@
 package com.pokergame.exception;
 
-public class UnauthorizedActionException extends PokerException {
-    public UnauthorizedActionException(String message) {
+public class UnauthorisedActionException extends PokerException {
+    public UnauthorisedActionException(String message) {
         super(message);
     }
 }

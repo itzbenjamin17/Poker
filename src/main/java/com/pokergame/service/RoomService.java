@@ -6,6 +6,9 @@ import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.response.ApiResponse;
 import com.pokergame.enums.ResponseMessage;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +42,13 @@ public class RoomService {
      * @param request The room creation request containing room name, host, and game
      *                settings
      * @return The unique room ID for the created room
-     * @throws IllegalArgumentException if room name is already taken
+     * @throws BadRequestException if room name is already taken
      */
     public String createRoom(CreateRoomRequest request) {
         if (isRoomNameTaken(request.getRoomName())) {
-            throw new com.pokergame.exception.BadRequestException(
-                "Room name '" + request.getRoomName() + "' is already taken. Please choose a different name.");
+            logger.warn("Attempted to create room with duplicate name: {}", request.getRoomName());
+            throw new BadRequestException(
+                    "Room name '" + request.getRoomName() + "' is already taken. Please choose a different name.");
         }
 
         String roomId = UUID.randomUUID().toString();
@@ -82,34 +86,44 @@ public class RoomService {
      * @param joinRequest the request containing room name, player name, and
      *                    password
      * @return the room ID of the joined room
-     * @throws IllegalArgumentException if room not found, password invalid, room
-     *                                  full, or name taken
+     * @throws ResourceNotFoundException   if the room isn't found
+     * @throws BadRequestException         if the password is invalid or the player
+     *                                     name is taken
+     * @throws UnauthorisedActionException if the room is full
      */
     public String joinRoom(JoinRoomRequest joinRequest) {
         Room foundRoom = findRoomByName(joinRequest.roomName());
         if (foundRoom == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
+            logger.warn("Join attempt failed: room not found for name {}", joinRequest.roomName());
+            throw new ResourceNotFoundException("Room not found");
         }
 
         String roomId = foundRoom.getRoomId();
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
+            logger.warn("Join attempt failed: room not found for id {}", roomId);
+            throw new ResourceNotFoundException("Room not found");
         }
 
         // Check password if room is private
         if (room.hasPassword() && !room.checkPassword(joinRequest.password())) {
-            throw new com.pokergame.exception.BadRequestException("Invalid password");
+            logger.warn("Invalid password attempt for room {} by player {}", room.getRoomName(),
+                    joinRequest.playerName());
+            throw new BadRequestException("Invalid password");
         }
 
         // Check if room is full
         if (room.getPlayers().size() >= room.getMaxPlayers()) {
-            throw new com.pokergame.exception.BadRequestException("Room is full");
+            logger.warn("Join attempt failed: room {} is full (player: {})", room.getRoomName(),
+                    joinRequest.playerName());
+            throw new UnauthorisedActionException("Room is full");
         }
 
         // Check if player name already exists
         if (room.hasPlayer(joinRequest.playerName())) {
-            throw new com.pokergame.exception.BadRequestException("Player name already taken");
+            logger.warn("Join attempt failed: player name '{}' already taken in room {}", joinRequest.playerName(),
+                    room.getRoomName());
+            throw new BadRequestException("Player name already taken");
         }
 
         room.addPlayer(joinRequest.playerName());
@@ -129,12 +143,13 @@ public class RoomService {
      *
      * @param roomId     the unique identifier of the room
      * @param playerName the name of the player leaving
-     * @throws IllegalArgumentException if room not found
+     * @throws ResourceNotFoundException if room not found
      */
     public void leaveRoom(String roomId, String playerName) {
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
+            logger.warn("Leave attempt failed: room not found for id {} (player: {})", roomId, playerName);
+            throw new ResourceNotFoundException("Room not found");
         }
 
         // Check if the leaving player is the host
@@ -176,15 +191,18 @@ public class RoomService {
      *
      * @param roomId the unique identifier of the room
      * @return a RoomDataResponse object containing formatted room information
-     * @throws IllegalArgumentException if roomId is null or room not found
+     * @throws BadRequestException       if roomId is null
+     * @throws ResourceNotFoundException if room not found
      */
     public RoomDataResponse getRoomData(String roomId) {
         if (roomId == null) {
-            throw new com.pokergame.exception.BadRequestException("Room ID cannot be null");
+            logger.error("Room data request failed: roomId is null");
+            throw new BadRequestException("Room ID cannot be null");
         }
         Room room = rooms.get(roomId);
         if (room == null) {
-            throw new com.pokergame.exception.ResourceNotFoundException("Room not found");
+            logger.warn("Room data request failed: room not found for id {}", roomId);
+            throw new ResourceNotFoundException("Room not found");
         }
 
         // Convert player names to PlayerInfoDTO objects

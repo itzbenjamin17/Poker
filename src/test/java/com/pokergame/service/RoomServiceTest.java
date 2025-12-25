@@ -1,6 +1,7 @@
 package com.pokergame.service;
 
 import com.pokergame.dto.response.RoomDataResponse;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.model.Room;
@@ -206,8 +207,8 @@ class RoomServiceTest {
 
         JoinRoomRequest thirdPlayer = new JoinRoomRequest("Small Room", "Player3", null);
 
-        com.pokergame.exception.BadRequestException exception = assertThrows(
-                com.pokergame.exception.BadRequestException.class,
+        UnauthorisedActionException exception = assertThrows(
+                UnauthorisedActionException.class,
                 () -> roomService.joinRoom(thirdPlayer));
 
         assertEquals("Room is full", exception.getMessage());

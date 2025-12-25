@@ -6,6 +6,8 @@ import com.pokergame.dto.response.PlayerNotificationResponse;
 import com.pokergame.dto.response.PublicGameStateResponse;
 import com.pokergame.enums.PlayerStatus;
 import com.pokergame.enums.ResponseMessage;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -41,17 +43,18 @@ public class GameStateService {
      *
      * @param gameId the unique identifier of the game
      * @param game   the Game object containing the current state
+     * @throws BadRequestException if the game is null
      */
     public void broadcastGameState(String gameId, Game game) {
         if (game == null) {
             logger.warn("Cannot broadcast game state - game {} not found", gameId);
-            return;
+            throw new BadRequestException("Trying to broadcast state for a non existent room: " + gameId);
         }
 
         logger.debug("Broadcasting game state for game {}", gameId);
 
         messagingTemplate.convertAndSend("/game/" + gameId, buildPublicGameStateResponse(gameId, game));
-        
+
         // Sending a personalised game state to each player
         for (Player targetPlayer : game.getPlayers()) {
             messagingTemplate.convertAndSend(
@@ -91,7 +94,8 @@ public class GameStateService {
             boolean isWinner = winners.contains(player);
             boolean isActive = !player.getHasFolded() && !player.getIsOut();
             String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
-                    : player.getIsOut() ? PlayerStatus.OUT.getStatus() : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
+                    : player.getIsOut() ? PlayerStatus.OUT.getStatus()
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             return new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),
@@ -159,7 +163,8 @@ public class GameStateService {
         // Convert players to PlayerState DTOs
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
             String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
+                    : player.getIsOut() ? "OUT"
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             boolean isCurrentPlayer = player.equals(currentPlayer);
             return new PublicPlayerState(
                     player.getPlayerId(),
@@ -274,17 +279,21 @@ public class GameStateService {
      * @param gameId the unique identifier of the game
      * @param game   the Game object containing current state
      * @return a {@link PublicGameStateResponse}
+     * 
+     * @throws ResourceNotFoundException if the room is not found
      */
     private PublicGameStateResponse buildPublicGameStateResponse(String gameId, Game game) {
         Room room = roomService.getRoom(gameId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            logger.warn("Game state build failed: room not found for gameId {}", gameId);
+            throw new ResourceNotFoundException("Room not found");
         }
         List<PublicPlayerState> playerStateList = new ArrayList<>();
         Player currentPlayer = game.getCurrentPlayer();
         for (Player player : game.getPlayers()) {
             String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
+                    : player.getIsOut() ? "OUT"
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             playerStateList.add(new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),

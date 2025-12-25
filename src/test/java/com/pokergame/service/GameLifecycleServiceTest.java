@@ -14,6 +14,8 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import com.pokergame.exception.BadRequestException;
 import com.pokergame.exception.ResourceNotFoundException;
+import com.pokergame.exception.UnauthorisedActionException;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -110,11 +112,11 @@ class GameLifecycleServiceTest {
 
         when(roomService.getRoom(ROOM_ID)).thenReturn(onePlayerRoom);
 
-        BadRequestException exception = assertThrows(
-                BadRequestException.class,
+        UnauthorisedActionException exception = assertThrows(
+                UnauthorisedActionException.class,
                 () -> gameLifecycleService.createGameFromRoom(ROOM_ID));
 
-        assertEquals("Need at least 2 players to start game", exception.getMessage());
+        assertEquals("Need at least 2 players to start game. Please wait for more players to join.", exception.getMessage());
     }
 
     @Test
@@ -211,8 +213,8 @@ class GameLifecycleServiceTest {
         when(roomService.getRoom(ROOM_ID)).thenReturn(testRoom);
         gameLifecycleService.createGameFromRoom(ROOM_ID);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> gameLifecycleService.leaveGame(ROOM_ID, "NonexistentPlayer"));
 
         assertEquals("Player not found in game", exception.getMessage());

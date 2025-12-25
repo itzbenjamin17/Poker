@@ -2,6 +2,7 @@ package com.pokergame.service;
 
 import com.pokergame.dto.request.PlayerActionRequest;
 import com.pokergame.enums.PlayerAction;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,8 +82,8 @@ class PlayerActionServiceTest {
 
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        com.pokergame.exception.UnauthorizedActionException exception = assertThrows(
-                com.pokergame.exception.UnauthorizedActionException.class,
+        UnauthorisedActionException exception = assertThrows(
+                UnauthorisedActionException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, nonCurrentPlayerName));
 
         assertTrue(exception.getMessage().contains("not your turn"));
@@ -157,7 +158,7 @@ class PlayerActionServiceTest {
         int invalidRaiseAmount = 1;
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.RAISE, invalidRaiseAmount);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(UnauthorisedActionException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 

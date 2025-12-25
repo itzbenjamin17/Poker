@@ -1,5 +1,9 @@
 package com.pokergame.model;
 
+import com.pokergame.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +21,7 @@ import java.util.List;
  * </p>
  */
 public class Room {
+    private static final Logger logger = LoggerFactory.getLogger(Room.class);
     private final String roomId;
     private final String roomName;
     private final String hostName;
@@ -40,28 +45,34 @@ public class Room {
      * @param buyIn      the buy-in amount for joining the game
      * @param password   optional password for room access (null or empty for public
      *                   rooms)
-     * @throws IllegalArgumentException if any validation fails
+     * @throws BadRequestException if any validation fails
      */
     public Room(String roomId, String roomName, String hostName, int maxPlayers,
-                int smallBlind, int bigBlind, int buyIn, String password) {
+            int smallBlind, int bigBlind, int buyIn, String password) {
 
         if (roomId == null || roomId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Room ID cannot be null or empty.");
+            logger.error("Invalid roomId: '{}'", roomId);
+            throw new BadRequestException("Room ID cannot be null or empty.");
         }
         if (roomName == null || roomName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Room name cannot be null or empty.");
+            logger.error("Invalid roomName: '{}'", roomName);
+            throw new BadRequestException("Room name cannot be null or empty.");
         }
         if (hostName == null || hostName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Host name cannot be null or empty.");
+            logger.error("Invalid hostName: '{}'", hostName);
+            throw new BadRequestException("Host name cannot be null or empty.");
         }
         if (maxPlayers < 2 || maxPlayers > 10) {
-            throw new IllegalArgumentException("Max players must be between 2 and 10.");
+            logger.error("Invalid maxPlayers: {}", maxPlayers);
+            throw new BadRequestException("Max players must be between 2 and 10.");
         }
         if (smallBlind < 1) {
-            throw new IllegalArgumentException("Small blind must be at least 1.");
+            logger.error("Invalid smallBlind: {}", smallBlind);
+            throw new BadRequestException("Small blind must be at least 1.");
         }
         if (bigBlind < smallBlind) {
-            throw new IllegalArgumentException("Big blind must be greater than or equal to the small blind.");
+            logger.error("Invalid bigBlind: {}, smallBlind: {}", bigBlind, smallBlind);
+            throw new BadRequestException("Big blind must be greater than or equal to the small blind.");
         }
 
         // Maybe don't allow for a big blind to be less than 2x a small blind

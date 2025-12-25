@@ -5,6 +5,7 @@ import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.response.ApiResponse;
 import com.pokergame.dto.response.TokenResponse;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.security.JwtService;
 import com.pokergame.service.GameLifecycleService;
 import com.pokergame.service.RoomService;
@@ -62,7 +63,6 @@ public class RoomController {
      *
      * @param joinRequest room name and player information
      * @return room ID and JWT token
-     * @throws IllegalArgumentException if room doesn't exist or is full
      */
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<TokenResponse>> joinRoom(@Valid @RequestBody JoinRoomRequest joinRequest) {
@@ -121,7 +121,7 @@ public class RoomController {
      * @param roomId    room identifier
      * @param principal authenticated player (must be host)
      * @return created game ID
-     * @throws SecurityException if player is not the room host
+     * @throws UnauthorisedActionException if player is not the room host
      */
     @PostMapping("/{roomId}/start-game")
     public ResponseEntity<ApiResponse<String>> startGame(
@@ -132,7 +132,7 @@ public class RoomController {
 
         if (!roomService.isRoomHost(roomId, playerName)) {
             logger.warn("Non-host player {} attempted to start game for room {}", playerName, roomId);
-            throw new com.pokergame.exception.UnauthorizedActionException("Only the room host can start the game.");
+            throw new UnauthorisedActionException("Only the room host can start the game. Please ask the host to start.");
         }
 
         logger.info("Host {} authorized to start game for room {}", playerName, roomId);

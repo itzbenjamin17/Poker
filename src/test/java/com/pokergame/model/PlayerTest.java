@@ -6,6 +6,7 @@ import com.pokergame.enums.Rank;
 import com.pokergame.enums.Suit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.pokergame.exception.BadRequestException;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,24 +38,24 @@ class PlayerTest {
 
     @Test
     void testPlayerCreationWithNullName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Player(null, "player789", 1000));
         assertEquals("Player name required", exception.getMessage());
     }
 
     @Test
     void testPlayerCreationWithEmptyName() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Player("   ", "player789", 1000));
         assertEquals("Player name required", exception.getMessage());
     }
 
     @Test
     void testPlayerCreationWithNegativeChips() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> new Player("Cheater", "player999", -100));
         assertEquals("Chips cannot be negative", exception.getMessage());
     }
