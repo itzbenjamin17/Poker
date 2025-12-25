@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 public class CreateRoomRequest {
 
     @NotBlank(message = "Room name is required")
-    private String roomName;
+    private final String roomName;
 
     @NotBlank(message = "Player name is required")
     private String playerName;
@@ -16,25 +16,22 @@ public class CreateRoomRequest {
     @NotNull
     @Min(value = 2, message = "Minimum 2 players required")
     @Max(value = 10, message = "Maximum 10 players allowed")
-    private Integer maxPlayers;
+    private final Integer maxPlayers;
 
     @NotNull
     @Min(value = 1, message = "Small blind must be at least 1")
-    private Integer smallBlind;
+    private final Integer smallBlind;
 
     @NotNull
     @Min(value = 2, message = "Big blind must be at least 2")
-    private Integer bigBlind;
+    private final Integer bigBlind;
 
     @NotNull
     @Min(value = 20, message = "Buy-in must be at least 20")
-    private Integer buyIn;
+    private final Integer buyIn;
 
-    private String password; // Optional - can be null/empty for public rooms
+    private final String password; // Optional - can be null/empty for public rooms
 
-    // Default constructor
-    public CreateRoomRequest() {
-    }
 
     // Constructor
     public CreateRoomRequest(String roomName, String playerName, Integer maxPlayers,
@@ -53,10 +50,6 @@ public class CreateRoomRequest {
         return roomName;
     }
 
-    public void setRoomName(String roomName) {
-        this.roomName = roomName;
-    }
-
     public String getPlayerName() {
         return playerName;
     }
@@ -69,40 +62,20 @@ public class CreateRoomRequest {
         return maxPlayers;
     }
 
-    public void setMaxPlayers(Integer maxPlayers) {
-        this.maxPlayers = maxPlayers;
-    }
-
     public Integer getSmallBlind() {
         return smallBlind;
-    }
-
-    public void setSmallBlind(Integer smallBlind) {
-        this.smallBlind = smallBlind;
     }
 
     public Integer getBigBlind() {
         return bigBlind;
     }
 
-    public void setBigBlind(Integer bigBlind) {
-        this.bigBlind = bigBlind;
-    }
-
     public Integer getBuyIn() {
         return buyIn;
     }
 
-    public void setBuyIn(Integer buyIn) {
-        this.buyIn = buyIn;
-    }
-
     public String getPassword() {
         return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     // Validation method

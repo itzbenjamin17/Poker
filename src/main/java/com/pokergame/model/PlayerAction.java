@@ -6,5 +6,5 @@ public enum PlayerAction {
     CALL,
     BET,
     RAISE,
-    ALL_IN;
+    ALL_IN
 }

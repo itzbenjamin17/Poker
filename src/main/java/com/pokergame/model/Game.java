@@ -190,9 +190,7 @@ public class Game {
         }
 
         switch (actualDecision.action()) {
-            case FOLD, CHECK -> {
-                player.doAction(actualDecision.action(), 0, this.pot);
-            }
+            case FOLD, CHECK -> player.doAction(actualDecision.action(), 0, this.pot);
             case CALL, BET, RAISE -> {
                 int amount = calculateActualAmount(player, actualDecision);
                 this.pot = player.doAction(actualDecision.action(), amount, this.pot);
@@ -249,11 +247,9 @@ public class Game {
                 currentHighestBet, everyoneHasHadInitialTurn);
 
         if (logger.isDebugEnabled()) {
-            activePlayers.forEach(p -> {
-                logger.debug("Player {}: bet={}, folded={}, all-in={}, needsToAct={}",
-                        p.getName(), p.getCurrentBet(), p.getHasFolded(), p.getIsAllIn(),
-                        (p.getCurrentBet() < currentHighestBet && !p.getHasFolded() && !p.getIsAllIn()));
-            });
+            activePlayers.forEach(p -> logger.debug("Player {}: bet={}, folded={}, all-in={}, needsToAct={}",
+                    p.getName(), p.getCurrentBet(), p.getHasFolded(), p.getIsAllIn(),
+                    (p.getCurrentBet() < currentHighestBet && !p.getHasFolded() && !p.getIsAllIn())));
         }
 
         boolean isComplete = !hasPlayerWhoNeedsToAct;
