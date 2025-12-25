@@ -28,9 +28,10 @@ public class JwtService {
 
     @PostConstruct
     public void init() {
-        // Ensure we have a base64-encoded secret key suitable for HMAC
-        String base64 = Base64.getEncoder().encodeToString(secretKeyString.getBytes());
-        byte[] keyBytes = Decoders.BASE64.decode(base64);
+        // Convert secret string to bytes for HMAC key
+        // If the secret is already long enough (>= 32 bytes), use it directly
+        // Otherwise, Keys.hmacShaKeyFor will throw WeakKeyException
+        byte[] keyBytes = secretKeyString.getBytes();
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
