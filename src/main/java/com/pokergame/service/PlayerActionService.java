@@ -35,11 +35,11 @@ public class PlayerActionService {
      * Validates the request, processes the decision, and handles game progression.
      *
      * @param gameId        the unique identifier of the game
-     * @param actionRequest the action request containing player name, action type,
-     *                      and amount
+     * @param actionRequest the action request containing action type and amount
+     * @param playerName    the authenticated player name (from JWT Principal)
      * @throws SecurityException if the requesting player is not the current player
      */
-    public void processPlayerAction(String gameId, PlayerActionRequest actionRequest) {
+    public void processPlayerAction(String gameId, PlayerActionRequest actionRequest, String playerName) {
         Game game = gameLifecycleService.getGame(gameId);
         if (game == null) {
             throw new IllegalArgumentException("Game not found when processing player action in game: " + gameId);
@@ -55,9 +55,9 @@ public class PlayerActionService {
                     game.getCurrentPhase(), game.getCurrentHighestBet());
 
             // Verify that the requesting player is the current player
-            if (!currentPlayer.getName().equals(actionRequest.playerName())) {
+            if (!currentPlayer.getName().equals(playerName)) {
                 logger.warn("Player name mismatch: expected {}, got {}",
-                        currentPlayer.getName(), actionRequest.playerName());
+                        currentPlayer.getName(), playerName);
                 throw new SecurityException("It's not your turn. Current player is: " + currentPlayer.getName());
             }
 

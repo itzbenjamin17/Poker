@@ -1,0 +1,76 @@
+package com.pokergame.config;
+
+import com.pokergame.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+/**
+ * Security configuration for stateless JWT authentication.
+ * - No sessions (stateless)
+ * - Public endpoints: create room, join room, WebSocket handshake
+ * - All other endpoints require valid JWT
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    // All requests go through this filter chain
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                // Disable CSRF (not needed for stateless JWT)
+                .csrf(csrf -> csrf.disable())
+
+                // Enable CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Stateless session - no cookies, no session
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Authorization rules
+                .authorizeHttpRequests(auth -> auth
+                        // Public endpoints - where tokens are ISSUED (no token required)
+                        .requestMatchers("/api/room/create", "/api/room/join").permitAll()
+                        .requestMatchers("/room/create", "/room/join").permitAll()
+
+                        // WebSocket handshake must be public
+                        .requestMatchers("/ws/**").permitAll()
+
+                        // Everything else requires authentication
+                        .anyRequest().authenticated())
+
+                // Add our JWT filter before Spring's default auth filter
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    // CORS configuration to allow requests from frontend from certain origins
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        config.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+}

@@ -58,11 +58,11 @@ class PlayerActionServiceTest {
     void processPlayerAction_WhenGameNotFound_ShouldThrowException() {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(null);
 
-        PlayerActionRequest request = new PlayerActionRequest("Player1", PlayerAction.CALL, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> playerActionService.processPlayerAction(GAME_ID, request));
+                () -> playerActionService.processPlayerAction(GAME_ID, request, "Player1"));
 
         assertTrue(exception.getMessage().contains("Game not found"));
     }
@@ -78,11 +78,11 @@ class PlayerActionServiceTest {
                 .orElseThrow()
                 .getName();
 
-        PlayerActionRequest request = new PlayerActionRequest(nonCurrentPlayerName, PlayerAction.CALL, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
         SecurityException exception = assertThrows(
                 SecurityException.class,
-                () -> playerActionService.processPlayerAction(GAME_ID, request));
+                () -> playerActionService.processPlayerAction(GAME_ID, request, nonCurrentPlayerName));
 
         assertTrue(exception.getMessage().contains("not your turn"));
     }
@@ -92,9 +92,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
 
         Player currentPlayer = testGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.FOLD, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.FOLD, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
 
         assertTrue(currentPlayer.getHasFolded());
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
@@ -106,9 +106,9 @@ class PlayerActionServiceTest {
 
         Player currentPlayer = testGame.getCurrentPlayer();
         int initialChips = currentPlayer.getChips();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.CALL, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
 
         assertTrue(currentPlayer.getChips() < initialChips || currentPlayer.getCurrentBet() > 0);
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
@@ -127,9 +127,9 @@ class PlayerActionServiceTest {
         // If the current player already has the highest bet, they can check
         // Let's manually set up such a situation
         // For now, let's just test that the action is processed
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.CALL, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 
     // ==================== processPlayerAction - Raise Tests ====================
@@ -140,9 +140,9 @@ class PlayerActionServiceTest {
 
         Player currentPlayer = testGame.getCurrentPlayer();
         int raiseAmount = 30; // Raise by 30
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.RAISE, raiseAmount);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.RAISE, raiseAmount);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
 
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
     }
@@ -154,11 +154,10 @@ class PlayerActionServiceTest {
         Player currentPlayer = testGame.getCurrentPlayer();
         // Try to raise by 1 when big blind is 10 - this should fail
         int invalidRaiseAmount = 1;
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.RAISE,
-                invalidRaiseAmount);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.RAISE, invalidRaiseAmount);
 
         assertThrows(IllegalArgumentException.class,
-                () -> playerActionService.processPlayerAction(GAME_ID, request));
+                () -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 
     // ==================== processPlayerAction - All-In Tests ====================
@@ -168,9 +167,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
 
         Player currentPlayer = testGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.ALL_IN, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.ALL_IN, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
 
         // All-in might be converted to call if there are already all-in players
         // But the action should process without error
@@ -192,9 +191,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(lowChipGame);
 
         Player currentPlayer = lowChipGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.ALL_IN, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.ALL_IN, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 
     // ==================== processPlayerAction - Bet Tests ====================
@@ -206,9 +205,9 @@ class PlayerActionServiceTest {
         Player currentPlayer = testGame.getCurrentPlayer();
         // Bet amount should be higher than current highest bet
         int betAmount = 20;
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.BET, betAmount);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.BET, betAmount);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
 
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
     }
@@ -220,9 +219,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
 
         Player currentPlayer = testGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.FOLD, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.FOLD, null);
 
-        playerActionService.processPlayerAction(GAME_ID, request);
+        playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName());
 
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
     }
@@ -245,8 +244,8 @@ class PlayerActionServiceTest {
 
         // First player calls
         Player currentPlayer = twoPlayerGame.getCurrentPlayer();
-        PlayerActionRequest callRequest = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.CALL, null);
-        playerActionService.processPlayerAction(GAME_ID, callRequest);
+        PlayerActionRequest callRequest = new PlayerActionRequest(PlayerAction.CALL, null);
+        playerActionService.processPlayerAction(GAME_ID, callRequest, currentPlayer.getName());
 
         // Game state should be broadcast
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
@@ -260,15 +259,15 @@ class PlayerActionServiceTest {
 
         // Get the initial current player and have them fold
         Player player1 = testGame.getCurrentPlayer();
-        PlayerActionRequest fold1 = new PlayerActionRequest(player1.getName(), PlayerAction.FOLD, null);
-        playerActionService.processPlayerAction(GAME_ID, fold1);
+        PlayerActionRequest fold1 = new PlayerActionRequest(PlayerAction.FOLD, null);
+        playerActionService.processPlayerAction(GAME_ID, fold1, player1.getName());
 
         // Now the next player should be current
         Player player2 = testGame.getCurrentPlayer();
         assertNotEquals(player1, player2);
 
-        PlayerActionRequest call2 = new PlayerActionRequest(player2.getName(), PlayerAction.CALL, null);
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, call2));
+        PlayerActionRequest call2 = new PlayerActionRequest(PlayerAction.CALL, null);
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, call2, player2.getName()));
     }
 
     // ==================== Edge Cases ====================
@@ -278,9 +277,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
 
         Player currentPlayer = testGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.FOLD, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.FOLD, null);
 
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 
     @Test
@@ -290,11 +289,11 @@ class PlayerActionServiceTest {
         // Multiple players taking actions
         Player p1 = testGame.getCurrentPlayer();
         playerActionService.processPlayerAction(GAME_ID,
-                new PlayerActionRequest(p1.getName(), PlayerAction.FOLD, null));
+                new PlayerActionRequest(PlayerAction.FOLD, null), p1.getName());
 
         Player p2 = testGame.getCurrentPlayer();
         playerActionService.processPlayerAction(GAME_ID,
-                new PlayerActionRequest(p2.getName(), PlayerAction.CALL, null));
+                new PlayerActionRequest(PlayerAction.CALL, null), p2.getName());
 
         // Verify folded player is actually folded
         assertTrue(p1.getHasFolded());
@@ -333,10 +332,11 @@ class PlayerActionServiceTest {
 
         // Try to raise - should be converted to call
         if (!currentPlayer.getIsAllIn()) {
-            PlayerActionRequest raiseRequest = new PlayerActionRequest(
-                    currentPlayer.getName(), PlayerAction.RAISE, 100);
+            PlayerActionRequest raiseRequest = new PlayerActionRequest(PlayerAction.RAISE, 100);
 
-            assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, raiseRequest));
+            final Player finalCurrentPlayer = currentPlayer;
+            assertDoesNotThrow(
+                    () -> playerActionService.processPlayerAction(GAME_ID, raiseRequest, finalCurrentPlayer.getName()));
 
             // Should have sent a notification about conversion
             verify(gameStateService, atLeast(0)).sendPlayerNotification(anyString(), anyString(), anyString());
@@ -352,8 +352,8 @@ class PlayerActionServiceTest {
         int initialPot = testGame.getPot();
         Player currentPlayer = testGame.getCurrentPlayer();
 
-        PlayerActionRequest callRequest = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.CALL, null);
-        playerActionService.processPlayerAction(GAME_ID, callRequest);
+        PlayerActionRequest callRequest = new PlayerActionRequest(PlayerAction.CALL, null);
+        playerActionService.processPlayerAction(GAME_ID, callRequest, currentPlayer.getName());
 
         assertTrue(testGame.getPot() >= initialPot);
     }
@@ -365,8 +365,8 @@ class PlayerActionServiceTest {
         int initialPot = testGame.getPot();
         Player currentPlayer = testGame.getCurrentPlayer();
 
-        PlayerActionRequest foldRequest = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.FOLD, null);
-        playerActionService.processPlayerAction(GAME_ID, foldRequest);
+        PlayerActionRequest foldRequest = new PlayerActionRequest(PlayerAction.FOLD, null);
+        playerActionService.processPlayerAction(GAME_ID, foldRequest, currentPlayer.getName());
 
         assertEquals(initialPot, testGame.getPot());
     }
@@ -380,8 +380,8 @@ class PlayerActionServiceTest {
         Player currentPlayer = testGame.getCurrentPlayer();
         assertFalse(currentPlayer.getHasFolded());
 
-        PlayerActionRequest foldRequest = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.FOLD, null);
-        playerActionService.processPlayerAction(GAME_ID, foldRequest);
+        PlayerActionRequest foldRequest = new PlayerActionRequest(PlayerAction.FOLD, null);
+        playerActionService.processPlayerAction(GAME_ID, foldRequest, currentPlayer.getName());
 
         assertTrue(currentPlayer.getHasFolded());
     }
@@ -395,8 +395,8 @@ class PlayerActionServiceTest {
         // Create a scenario where player can go all-in
         // If player has more chips than needed to call, all-in might be converted
         // For this test, ensure we're testing a legitimate all-in scenario
-        PlayerActionRequest allInRequest = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.ALL_IN, null);
-        playerActionService.processPlayerAction(GAME_ID, allInRequest);
+        PlayerActionRequest allInRequest = new PlayerActionRequest(PlayerAction.ALL_IN, null);
+        playerActionService.processPlayerAction(GAME_ID, allInRequest, currentPlayer.getName());
 
         // Player should either be all-in or have made the equivalent call
         verify(gameStateService, atLeastOnce()).broadcastGameState(eq(GAME_ID), any(Game.class));
@@ -409,9 +409,9 @@ class PlayerActionServiceTest {
         when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
 
         Player currentPlayer = testGame.getCurrentPlayer();
-        PlayerActionRequest request = new PlayerActionRequest(currentPlayer.getName(), PlayerAction.CALL, null);
+        PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
         // This should not cause any issues due to synchronization
-        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request));
+        assertDoesNotThrow(() -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 }
