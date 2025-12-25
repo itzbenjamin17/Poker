@@ -1,6 +1,6 @@
-package com.pokergame.dto;
+package com.pokergame.dto.internal;
 
-import com.pokergame.model.PlayerAction;
+import com.pokergame.enums.PlayerAction;
 
 public record PlayerDecision(PlayerAction action, int amount, String playerId) {
     public PlayerDecision {

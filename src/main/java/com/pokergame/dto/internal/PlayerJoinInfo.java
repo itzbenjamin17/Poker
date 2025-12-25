@@ -1,4 +1,4 @@
-package com.pokergame.dto;
+package com.pokergame.dto.internal;
 
 public record PlayerJoinInfo(
         String name,

@@ -1,6 +1,6 @@
 package com.pokergame.service;
 
-import com.pokergame.dto.RoomData;
+import com.pokergame.dto.response.RoomDataResponse;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.model.Room;
@@ -308,7 +308,7 @@ class RoomServiceTest {
         String roomId = roomService.createRoom(validCreateRequest);
         roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
 
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
 
         assertNotNull(roomData);
         assertEquals(roomId, roomData.roomId());
@@ -345,7 +345,7 @@ class RoomServiceTest {
         String roomId = roomService.createRoom(validCreateRequest);
         roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
 
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
 
         var hostPlayer = roomData.players().stream()
                 .filter(p -> p.name().equals("HostPlayer"))
@@ -452,7 +452,7 @@ class RoomServiceTest {
     void getRoomData_WithOnePlayer_ShouldNotBeAbleToStart() {
         String roomId = roomService.createRoom(validCreateRequest);
 
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
 
         assertEquals(1, roomData.currentPlayers());
         assertFalse(roomData.canStartGame());
@@ -463,7 +463,7 @@ class RoomServiceTest {
         String roomId = roomService.createRoom(validCreateRequest);
         roomService.joinRoom(new JoinRoomRequest("Test Room", "Player2", null));
 
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
 
         assertEquals(2, roomData.currentPlayers());
         assertTrue(roomData.canStartGame());

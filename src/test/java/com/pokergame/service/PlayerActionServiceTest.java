@@ -1,6 +1,7 @@
 package com.pokergame.service;
 
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.enums.PlayerAction;
 import com.pokergame.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

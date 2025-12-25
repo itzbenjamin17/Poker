@@ -1,5 +1,8 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

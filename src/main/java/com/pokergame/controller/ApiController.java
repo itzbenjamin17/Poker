@@ -1,6 +1,6 @@
 package com.pokergame.controller;
 
-import com.pokergame.dto.RoomData;
+import com.pokergame.dto.response.RoomDataResponse;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.request.PlayerActionRequest;
@@ -74,7 +74,7 @@ public class ApiController {
      * {@link RoomController#getRoomInfo(String)}.
      */
     @GetMapping("/room/{roomId}")
-    public ResponseEntity<RoomData> getRoomInfo(@PathVariable String roomId) {
+    public ResponseEntity<RoomDataResponse> getRoomInfo(@PathVariable String roomId) {
         logger.debug("API: Delegating get room info request for room: {}", roomId);
         return roomController.getRoomInfo(roomId);
     }

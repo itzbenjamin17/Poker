@@ -1,6 +1,6 @@
 package com.pokergame.controller;
 
-import com.pokergame.dto.RoomData;
+import com.pokergame.dto.response.RoomDataResponse;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.response.ApiResponse;
@@ -103,9 +103,9 @@ public class RoomController {
      * @return room data, or 404 if not found
      */
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomData> getRoomInfo(@PathVariable String roomId) {
+    public ResponseEntity<RoomDataResponse> getRoomInfo(@PathVariable String roomId) {
         logger.debug("Fetching room info for room: {}", roomId);
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
         if (roomData == null) {
             logger.warn("Room not found: {}", roomId);
             return ResponseEntity.notFound().build();

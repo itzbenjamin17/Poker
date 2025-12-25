@@ -1,7 +1,7 @@
 package com.pokergame.service;
 
-import com.pokergame.dto.PrivatePlayerState;
-import com.pokergame.dto.PublicPlayerState;
+import com.pokergame.dto.response.PrivatePlayerState;
+import com.pokergame.dto.response.PublicPlayerState;
 import com.pokergame.dto.response.PlayerNotificationResponse;
 import com.pokergame.dto.response.PublicGameStateResponse;
 import com.pokergame.model.Game;

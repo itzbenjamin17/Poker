@@ -1,5 +1,7 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.HandRank;
+
 import java.util.List;
 
 public record HandEvaluationResult(List<Card> bestHand, HandRank handRank) {

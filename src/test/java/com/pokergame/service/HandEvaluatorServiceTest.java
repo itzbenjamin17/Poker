@@ -1,5 +1,8 @@
 package com.pokergame.service;
 
+import com.pokergame.enums.HandRank;
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
 import com.pokergame.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

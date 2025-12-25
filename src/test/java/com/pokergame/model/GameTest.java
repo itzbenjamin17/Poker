@@ -1,6 +1,7 @@
 package com.pokergame.model;
 
-import com.pokergame.dto.PlayerDecision;
+import com.pokergame.dto.internal.PlayerDecision;
+import com.pokergame.enums.*;
 import com.pokergame.service.HandEvaluatorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

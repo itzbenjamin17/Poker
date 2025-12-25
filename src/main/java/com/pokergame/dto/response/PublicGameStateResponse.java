@@ -1,8 +1,7 @@
 package com.pokergame.dto.response;
 
-import com.pokergame.dto.PublicPlayerState;
 import com.pokergame.model.Card;
-import com.pokergame.model.GamePhase;
+import com.pokergame.enums.GamePhase;
 
 import java.util.List;
 

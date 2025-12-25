@@ -1,4 +1,4 @@
-package com.pokergame.model;
+package com.pokergame.enums;
 
 public enum HandRank {
     NO_HAND(-1),

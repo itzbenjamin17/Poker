@@ -1,6 +1,8 @@
 package com.pokergame.model;
 
-import com.pokergame.dto.PlayerDecision;
+import com.pokergame.dto.internal.PlayerDecision;
+import com.pokergame.enums.GamePhase;
+import com.pokergame.enums.PlayerAction;
 import com.pokergame.service.HandEvaluatorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

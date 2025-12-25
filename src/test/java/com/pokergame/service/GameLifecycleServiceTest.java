@@ -1,5 +1,6 @@
 package com.pokergame.service;
 
+import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -310,7 +311,7 @@ class GameLifecycleServiceTest {
         gameLifecycleService.createGameFromRoom(ROOM_ID);
 
         Game game = gameLifecycleService.getGame(ROOM_ID);
-        assertEquals(com.pokergame.model.GamePhase.PRE_FLOP, game.getCurrentPhase());
+        assertEquals(GamePhase.PRE_FLOP, game.getCurrentPhase());
     }
 
     @Test

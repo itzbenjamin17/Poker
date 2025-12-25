@@ -5,9 +5,9 @@ import java.util.*;
 import java.util.stream.*;
 
 import com.pokergame.model.HandEvaluationResult;
-import com.pokergame.model.HandRank;
-import com.pokergame.model.Rank;
-import com.pokergame.model.Suit;
+import com.pokergame.enums.HandRank;
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
 import org.springframework.stereotype.Service;
 
 /**

@@ -1,7 +1,7 @@
 package com.pokergame.service;
 
-import com.pokergame.dto.PlayerJoinInfo;
-import com.pokergame.dto.RoomData;
+import com.pokergame.dto.internal.PlayerJoinInfo;
+import com.pokergame.dto.response.RoomDataResponse;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.response.ApiResponse;
@@ -172,10 +172,10 @@ public class RoomService {
      * Includes player information with host status indicators.
      *
      * @param roomId the unique identifier of the room
-     * @return a RoomData object containing formatted room information
+     * @return a RoomDataResponse object containing formatted room information
      * @throws IllegalArgumentException if roomId is null or room not found
      */
-    public RoomData getRoomData(String roomId) {
+    public RoomDataResponse getRoomData(String roomId) {
         if (roomId == null) {
             throw new IllegalArgumentException("Room ID cannot be null");
         }
@@ -194,7 +194,7 @@ public class RoomService {
                 .collect(Collectors.toList());
 
         // Create and return the RoomDataDTO
-        return new RoomData(
+        return new RoomDataResponse(
                 roomId,
                 room.getRoomName(),
                 room.getMaxPlayers(),

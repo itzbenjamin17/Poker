@@ -1,4 +1,4 @@
-package com.pokergame.dto;
+package com.pokergame.dto.response;
 
 import com.pokergame.model.Card;
 

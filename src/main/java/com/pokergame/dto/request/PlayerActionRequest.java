@@ -1,6 +1,6 @@
 package com.pokergame.dto.request;
 
-import com.pokergame.model.PlayerAction;
+import com.pokergame.enums.PlayerAction;
 import jakarta.validation.constraints.*;
 
 /**

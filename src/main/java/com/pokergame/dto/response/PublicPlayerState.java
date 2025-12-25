@@ -1,7 +1,7 @@
-package com.pokergame.dto;
+package com.pokergame.dto.response;
 
 import com.pokergame.model.Card;
-import com.pokergame.model.HandRank;
+import com.pokergame.enums.HandRank;
 
 import java.util.List;
 

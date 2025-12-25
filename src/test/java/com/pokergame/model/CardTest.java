@@ -1,5 +1,7 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

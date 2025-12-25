@@ -1,5 +1,8 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
+
 /**
  * Represents a playing card with a suit and rank.
  * Cards are immutable once created.

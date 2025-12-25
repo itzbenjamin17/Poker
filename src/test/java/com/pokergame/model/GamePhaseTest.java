@@ -1,5 +1,6 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.GamePhase;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

@@ -1,5 +1,8 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.HandRank;
+import com.pokergame.enums.PlayerAction;
+
 import java.util.ArrayList;
 import java.util.List;
 
