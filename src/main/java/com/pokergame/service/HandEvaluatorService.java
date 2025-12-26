@@ -107,7 +107,7 @@ public class HandEvaluatorService {
 
     /**
      * Compares two hands of the same rank to determine which is better.
-     * Uses rank-specific comparison rules (e.g., comparing kickers for pairs).
+     * Uses rank-specific comparison rules (e.g. comparing kickers for pairs).
      *
      * @param sortedCombination the first hand to compare (sorted by card value)
      * @param bestHand          the second hand to compare (sorted by card value)
@@ -155,7 +155,7 @@ public class HandEvaluatorService {
      */
     private boolean compareOnePair(List<Card> sortedCombination, List<Card> bestHand) {
         // Get pair and kickers for sortedCombination
-        Map<Rank, List<Card>> groups1 = sortedCombination.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups1 = sortedCombination.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> pair1 = groups1.values().stream()
@@ -168,7 +168,7 @@ public class HandEvaluatorService {
                 .toList();
 
         // Get pair and kickers for bestHand
-        Map<Rank, List<Card>> groups2 = bestHand.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups2 = bestHand.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> pair2 = groups2.values().stream()
@@ -181,6 +181,7 @@ public class HandEvaluatorService {
                 .toList();
 
         // Compare pair values first
+        //noinspection DuplicatedCode
         if (pair1.getFirst().getValue() != pair2.getFirst().getValue()) {
             return pair1.getFirst().getValue() > pair2.getFirst().getValue();
         }
@@ -196,7 +197,7 @@ public class HandEvaluatorService {
     }
 
     /**
-     * Compares two two-pair hands. Compares higher pair first, then lower pair,
+     * Compares two two-pair hands. Compares the higher pair first, then lower pair,
      * then kicker if necessary.
      *
      * @param sortedCombination the first two-pair hand
@@ -205,7 +206,7 @@ public class HandEvaluatorService {
      */
     private boolean compareTwoPair(List<Card> sortedCombination, List<Card> bestHand) {
         // Get pairs and kicker for sortedCombination
-        Map<Rank, List<Card>> groups1 = sortedCombination.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups1 = sortedCombination.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<List<Card>> pairs1 = groups1.values().stream()
@@ -218,7 +219,7 @@ public class HandEvaluatorService {
                 .toList().getFirst().getFirst();
 
         // Get pairs and kicker for bestHand
-        Map<Rank, List<Card>> groups2 = bestHand.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups2 = bestHand.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<List<Card>> pairs2 = groups2.values().stream()
@@ -254,7 +255,7 @@ public class HandEvaluatorService {
      */
     private boolean compareThreeOfAKind(List<Card> sortedCombination, List<Card> bestHand) {
         // Get three-of-a-kind and kickers for sortedCombination
-        Map<Rank, List<Card>> groups1 = sortedCombination.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups1 = sortedCombination.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> threeOfKind1 = groups1.values().stream()
@@ -267,7 +268,7 @@ public class HandEvaluatorService {
                 .toList();
 
         // Get three-of-a-kind and kickers for bestHand
-        Map<Rank, List<Card>> groups2 = bestHand.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups2 = bestHand.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> threeOfKind2 = groups2.values().stream()
@@ -280,6 +281,7 @@ public class HandEvaluatorService {
                 .toList();
 
         // Compare three-of-a-kind values first
+        //noinspection DuplicatedCode
         if (threeOfKind1.getFirst().getValue() != threeOfKind2.getFirst().getValue()) {
             return threeOfKind1.getFirst().getValue() > threeOfKind2.getFirst().getValue();
         }
@@ -304,7 +306,7 @@ public class HandEvaluatorService {
      * @return true if sortedCombination is better, false otherwise
      */
     private boolean compareStraight(List<Card> sortedCombination, List<Card> bestHand) {
-        // Get highest card value (assuming cards are sorted ascending)
+        // Get the highest card value (assuming cards are sorted ascending)
         int highCard1 = sortedCombination.get(4).getValue();
         int highCard2 = bestHand.get(4).getValue();
 
@@ -352,7 +354,7 @@ public class HandEvaluatorService {
      */
     private boolean compareFullHouse(List<Card> sortedCombination, List<Card> bestHand) {
         // Get three-of-a-kind and pair for sortedCombination
-        Map<Rank, List<Card>> groups1 = sortedCombination.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups1 = sortedCombination.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> threeOfKind1 = groups1.values().stream()
@@ -364,7 +366,7 @@ public class HandEvaluatorService {
                 .toList().getFirst();
 
         // Get three-of-a-kind and pair for bestHand
-        Map<Rank, List<Card>> groups2 = bestHand.stream()
+        @SuppressWarnings("DuplicatedCode") Map<Rank, List<Card>> groups2 = bestHand.stream()
                 .collect(Collectors.groupingBy(Card::rank));
 
         List<Card> threeOfKind2 = groups2.values().stream()

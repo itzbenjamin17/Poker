@@ -67,9 +67,9 @@ public class GameStateService {
      * Reveals hole cards, hand ranks, and best hands for winning players only.
      *
      * @param gameId            the unique identifier of the game
-     * @param game              the Game object containing current state
+     * @param game              the Game object containing the current state
      * @param winners           the list of Player objects who won the hand
-     * @param winningsPerPlayer the amount of chips each winner receives
+     * @param winningsPerPlayer the number of chips each winner receives
      */
     public void broadcastShowdownResults(String gameId, Game game, List<Player> winners, int winningsPerPlayer) {
         if (game == null) {
@@ -78,7 +78,7 @@ public class GameStateService {
         }
 
         // Get room information
-        Room room = roomService.getRoom(gameId);
+        @SuppressWarnings("DuplicatedCode") Room room = roomService.getRoom(gameId);
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -140,7 +140,7 @@ public class GameStateService {
      * progression.
      *
      * @param gameId          the unique identifier of the game
-     * @param game            the Game object containing current state
+     * @param game            the Game object containing the current state
      * @param isAutoAdvancing true if auto-advancing to showdown, false otherwise
      * @param message         the message to display to players about auto-advance
      *                        status
@@ -152,7 +152,7 @@ public class GameStateService {
         }
 
         // Get room information
-        Room room = roomService.getRoom(gameId);
+        @SuppressWarnings("DuplicatedCode") Room room = roomService.getRoom(gameId);
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -204,7 +204,7 @@ public class GameStateService {
      * Sent when all active players are all-in.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      */
     public void broadcastAutoAdvanceNotification(String gameId, Game game) {
         if (game == null) {
@@ -222,7 +222,7 @@ public class GameStateService {
      * Sent after all community cards have been dealt and showdown is ready.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      */
     public void broadcastAutoAdvanceComplete(String gameId, Game game) {
         if (game == null) {
@@ -277,7 +277,7 @@ public class GameStateService {
      * Builds a PublicGameStateResponse object to be shown to all players in a game.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      * @return a {@link PublicGameStateResponse}
      * 
      * @throws ResourceNotFoundException if the room is not found

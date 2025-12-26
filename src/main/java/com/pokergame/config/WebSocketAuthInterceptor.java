@@ -19,6 +19,7 @@ import java.security.Principal;
  * On CONNECT, extracts and validates the JWT token from headers and sets the
  * Principal.
  */
+@SuppressWarnings("NullableProblems")
 @Component
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketAuthInterceptor.class);
@@ -31,7 +32,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-            // Get Authorization header from STOMP connect headers
+            // Get Authorisation header from STOMP connect headers
             String authHeader = accessor.getFirstNativeHeader("Authorization");
 
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -41,6 +42,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     String playerName = jwtService.extractPlayerName(token);
 
                     // Set the user principal for this WebSocket session
+                    //noinspection Convert2Lambda
                     accessor.setUser(new Principal() {
                         @Override
                         public String getName() {
@@ -50,12 +52,11 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
                     logger.debug("WebSocket authenticated for player: {}", playerName);
                 } else {
-                    // Log invalid token but do not reject the handshake; leave session
-                    // unauthenticated
+                    // Log the invalid token but do not reject the handshake; leave the session unauthenticated
                     logger.warn("Invalid JWT token in WebSocket CONNECT");
                 }
             } else {
-                // No Authorization header is fine for public handshake; do not reject
+                // No Authorisation header is fine for the public handshake; do not reject
                 // connection
                 logger.debug("No Authorization header in WebSocket CONNECT");
             }

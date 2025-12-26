@@ -244,7 +244,6 @@ class GameStateServiceTest {
         assertNotNull(captured);
         assertTrue(captured instanceof Map);
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> gameEndData = (Map<String, Object>) captured;
         assertEquals("GAME_END", gameEndData.get("type"));
         assertEquals(winner.getName(), gameEndData.get("winner"));
@@ -261,7 +260,6 @@ class GameStateServiceTest {
 
         verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), captor.capture());
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> gameEndData = (Map<String, Object>) captor.getValue();
         String message = (String) gameEndData.get("message");
         assertTrue(message.contains(winner.getName()));

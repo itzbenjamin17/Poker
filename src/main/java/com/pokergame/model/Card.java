@@ -2,6 +2,7 @@ package com.pokergame.model;
 
 import com.pokergame.enums.Rank;
 import com.pokergame.enums.Suit;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Represents a playing card with a suit and rank.
@@ -52,9 +53,10 @@ public record Card(Rank rank, Suit suit) {
     /**
      * Returns a string representation of this card in "Rank of Suit" format.
      *
-     * @return formatted string (e.g., "Ace of Hearts")
+     * @return formatted string (e.g. "Ace of Hearts")
      */
     @Override
+    @NonNull
     public String toString() {
         return rank.getDisplayName() + " of " + suit.getDisplayName();
     }

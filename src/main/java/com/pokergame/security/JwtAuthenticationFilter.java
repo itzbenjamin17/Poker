@@ -17,10 +17,11 @@ import java.io.IOException;
 import java.util.Collections;
 
 /**
- * Filter that extracts JWT from Authorization header and sets up Spring
+ * Filter that extracts JWT from the Authorisation header and sets up Spring
  * Security context.
  * Runs once per request before hitting the controller.
  */
+@SuppressWarnings("NullableProblems")
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -41,13 +42,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtService.isTokenValid(token)) {
                 String playerName = jwtService.extractPlayerName(token);
 
-                // Create pre-authenticated token (authentication already occurred via JWT
+                // Create the pre-authenticated token (authentication already occurred via JWT
                 // validation)
                 PreAuthenticatedAuthenticationToken authentication = new PreAuthenticatedAuthenticationToken(
                         playerName, token, Collections.emptyList());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // Set in security context - now Principal.getName() returns playerName
+                // Set in the security context - now Principal.getName() returns playerName
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 logger.debug("Authenticated player: {}", playerName);
             }

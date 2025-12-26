@@ -29,8 +29,10 @@ public class SecurityConfig {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // All requests go through this filter chain
+    @SuppressWarnings("RedundantThrows")
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        //noinspection Convert2MethodRef
         http
                 // Disable CSRF (not needed for stateless JWT)
                 .csrf(csrf -> csrf.disable())

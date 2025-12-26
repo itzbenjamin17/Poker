@@ -23,11 +23,4 @@ public record ApiResponse<T>(
     public static <T> ApiResponse<T> success(String message) {
         return new ApiResponse<>(true, message, null);
     }
-
-    /**
-     * Creates an error response with message.
-     */
-    public static <T> ApiResponse<T> error(String message) {
-        return new ApiResponse<>(false, message, null);
-    }
 }

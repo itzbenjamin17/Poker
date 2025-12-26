@@ -203,7 +203,6 @@ public class Player {
      *
      * @return true if the player is all-in, false otherwise
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean getIsAllIn() {
         return isAllIn;
     }
@@ -213,7 +212,6 @@ public class Player {
      *
      * @return true if the player is out, false otherwise
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean getIsOut() {
         return isOut;
     }
