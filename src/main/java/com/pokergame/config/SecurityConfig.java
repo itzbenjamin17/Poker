@@ -1,14 +1,13 @@
 package com.pokergame.config;
 
 import com.pokergame.security.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,12 +24,17 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     // All requests go through this filter chain
+    @SuppressWarnings("RedundantThrows")
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        //noinspection Convert2MethodRef
         http
                 // Disable CSRF (not needed for stateless JWT)
                 .csrf(csrf -> csrf.disable())
@@ -41,7 +45,7 @@ public class SecurityConfig {
                 // Stateless session - no cookies, no session
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Authorization rules
+                // Authorisation rules
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - where tokens are ISSUED (no token required)
                         .requestMatchers("/api/room/create", "/api/room/join").permitAll()
@@ -53,8 +57,9 @@ public class SecurityConfig {
                         // Everything else requires authentication
                         .anyRequest().authenticated())
 
-                // Add our JWT filter before Spring's default auth filter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // Add our JWT filter before Spring's pre-auth filter (since we use
+                // PreAuthenticatedAuthenticationToken)
+                .addFilterBefore(jwtAuthenticationFilter, AbstractPreAuthenticatedProcessingFilter.class);
 
         return http.build();
     }

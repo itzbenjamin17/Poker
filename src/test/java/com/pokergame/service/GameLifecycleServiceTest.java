@@ -1,5 +1,6 @@
 package com.pokergame.service;
 
+import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
@@ -11,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import static org.junit.jupiter.api.Assertions.*;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
+import com.pokergame.exception.UnauthorisedActionException;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -32,7 +37,6 @@ class GameLifecycleServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
-    @InjectMocks
     private GameLifecycleService gameLifecycleService;
 
     private Room testRoom;
@@ -40,6 +44,8 @@ class GameLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
+        gameLifecycleService = new GameLifecycleService(roomService, handEvaluator, gameStateService, messagingTemplate);
+
         testRoom = new Room(
                 ROOM_ID,
                 "Test Room",
@@ -85,8 +91,8 @@ class GameLifecycleServiceTest {
     void createGameFromRoom_WhenRoomNotFound_ShouldThrowException() {
         when(roomService.getRoom(ROOM_ID)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
                 () -> gameLifecycleService.createGameFromRoom(ROOM_ID));
 
         assertEquals("Room not found", exception.getMessage());
@@ -107,11 +113,11 @@ class GameLifecycleServiceTest {
 
         when(roomService.getRoom(ROOM_ID)).thenReturn(onePlayerRoom);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UnauthorisedActionException exception = assertThrows(
+                UnauthorisedActionException.class,
                 () -> gameLifecycleService.createGameFromRoom(ROOM_ID));
 
-        assertEquals("Need at least 2 players to start game", exception.getMessage());
+        assertEquals("Need at least 2 players to start game. Please wait for more players to join.", exception.getMessage());
     }
 
     @Test
@@ -196,8 +202,8 @@ class GameLifecycleServiceTest {
 
     @Test
     void leaveGame_WhenGameNotFound_ShouldThrowException() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
                 () -> gameLifecycleService.leaveGame("nonexistent-id", "Player"));
 
         assertEquals("Game not found", exception.getMessage());
@@ -208,8 +214,8 @@ class GameLifecycleServiceTest {
         when(roomService.getRoom(ROOM_ID)).thenReturn(testRoom);
         gameLifecycleService.createGameFromRoom(ROOM_ID);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> gameLifecycleService.leaveGame(ROOM_ID, "NonexistentPlayer"));
 
         assertEquals("Player not found in game", exception.getMessage());
@@ -310,7 +316,7 @@ class GameLifecycleServiceTest {
         gameLifecycleService.createGameFromRoom(ROOM_ID);
 
         Game game = gameLifecycleService.getGame(ROOM_ID);
-        assertEquals(com.pokergame.model.GamePhase.PRE_FLOP, game.getCurrentPhase());
+        assertEquals(GamePhase.PRE_FLOP, game.getCurrentPhase());
     }
 
     @Test

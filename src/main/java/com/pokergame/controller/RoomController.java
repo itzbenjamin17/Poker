@@ -1,17 +1,17 @@
 package com.pokergame.controller;
 
-import com.pokergame.dto.RoomData;
+import com.pokergame.dto.response.RoomDataResponse;
 import com.pokergame.dto.request.CreateRoomRequest;
 import com.pokergame.dto.request.JoinRoomRequest;
 import com.pokergame.dto.response.ApiResponse;
 import com.pokergame.dto.response.TokenResponse;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.security.JwtService;
 import com.pokergame.service.GameLifecycleService;
 import com.pokergame.service.RoomService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +19,7 @@ import java.security.Principal;
 
 /**
  * REST controller for poker room management.
- * Handles room creation, joining, leaving, and game initialization.
+ * Handles room creation, joining, leaving, and game initialisation.
  */
 @RestController
 @RequestMapping("/room")
@@ -27,14 +27,18 @@ import java.security.Principal;
 public class RoomController {
     private static final Logger logger = LoggerFactory.getLogger(RoomController.class);
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
 
-    @Autowired
-    private GameLifecycleService gameLifecycleService;
+    private final GameLifecycleService gameLifecycleService;
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
+
+    // Dependency Injection
+    public RoomController(RoomService roomService, GameLifecycleService gameLifecycleService, JwtService jwtService) {
+        this.roomService = roomService;
+        this.gameLifecycleService = gameLifecycleService;
+        this.jwtService = jwtService;
+    }
 
     /**
      * Creates a new poker room. The creating player becomes the room host.
@@ -62,7 +66,6 @@ public class RoomController {
      *
      * @param joinRequest room name and player information
      * @return room ID and JWT token
-     * @throws IllegalArgumentException if room doesn't exist or is full
      */
     @PostMapping("/join")
     public ResponseEntity<ApiResponse<TokenResponse>> joinRoom(@Valid @RequestBody JoinRoomRequest joinRequest) {
@@ -103,9 +106,9 @@ public class RoomController {
      * @return room data, or 404 if not found
      */
     @GetMapping("/{roomId}")
-    public ResponseEntity<RoomData> getRoomInfo(@PathVariable String roomId) {
+    public ResponseEntity<RoomDataResponse> getRoomInfo(@PathVariable String roomId) {
         logger.debug("Fetching room info for room: {}", roomId);
-        RoomData roomData = roomService.getRoomData(roomId);
+        RoomDataResponse roomData = roomService.getRoomData(roomId);
         if (roomData == null) {
             logger.warn("Room not found: {}", roomId);
             return ResponseEntity.notFound().build();
@@ -121,7 +124,7 @@ public class RoomController {
      * @param roomId    room identifier
      * @param principal authenticated player (must be host)
      * @return created game ID
-     * @throws SecurityException if player is not the room host
+     * @throws UnauthorisedActionException if the player is not the room host
      */
     @PostMapping("/{roomId}/start-game")
     public ResponseEntity<ApiResponse<String>> startGame(
@@ -132,7 +135,7 @@ public class RoomController {
 
         if (!roomService.isRoomHost(roomId, playerName)) {
             logger.warn("Non-host player {} attempted to start game for room {}", playerName, roomId);
-            throw new SecurityException("Only the room host can start the game.");
+            throw new UnauthorisedActionException("Only the room host can start the game. Please ask the host to start.");
         }
 
         logger.info("Host {} authorized to start game for room {}", playerName, roomId);

@@ -1,6 +1,10 @@
 package com.pokergame.model;
 
-import com.pokergame.dto.PlayerDecision;
+import com.pokergame.dto.internal.PlayerDecision;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.UnauthorisedActionException;
+import com.pokergame.enums.GamePhase;
+import com.pokergame.enums.PlayerAction;
 import com.pokergame.service.HandEvaluatorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +37,7 @@ public class Game {
     private final int smallBlind;
     private final int bigBlind;
 
-    // Track if everyone has had their initial turn in current betting round
+    // Track if everyone has had their initial turn in the current betting round
     private boolean everyoneHasHadInitialTurn;
 
     /**
@@ -45,18 +49,22 @@ public class Game {
      * @param smallBlind    the small blind amount
      * @param bigBlind      the big blind amount
      * @param handEvaluator service for evaluating poker hands
-     * @throws IllegalArgumentException if gameId is null/empty, players list is
-     *                                  invalid, or contains null elements
+     * @throws BadRequestException if gameId is null/empty, players list is
+     *                             invalid, or contains null elements
      */
     public Game(String gameId, List<Player> players, int smallBlind, int bigBlind, HandEvaluatorService handEvaluator) {
         if (gameId == null || gameId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Game ID cannot be null or empty");
+            logger.error("[Game] Invalid gameId: '{}'", gameId);
+            throw new BadRequestException("Game ID cannot be null or empty");
         }
         if (players == null || players.size() < 2) {
-            throw new IllegalArgumentException("At least 2 players are required to start a game");
+            logger.error("[Game] Invalid players list: null or too few players (size: {})",
+                    players == null ? 0 : players.size());
+            throw new BadRequestException("At least 2 players are required to start a game");
         }
         if (players.stream().anyMatch(Objects::isNull)) {
-            throw new IllegalArgumentException("Player list cannot contain null elements");
+            logger.error("[Game] Players list contains null element(s)");
+            throw new BadRequestException("Invalid players list. Please try again.");
         }
         this.gameId = gameId;
         this.players = new ArrayList<>(players);
@@ -145,9 +153,9 @@ public class Game {
      *
      * @param player   the player making the decision
      * @param decision the player's betting decision (action and amount)
-     * @return a message if the action was converted (e.g., raise to call), null
+     * @return a message if the action was converted (e.g. raise to call), null
      *         otherwise
-     * @throws IllegalArgumentException if a raise amount is invalid
+     * @throws UnauthorisedActionException if a raise amount is invalid
      */
     public String processPlayerDecision(Player player, PlayerDecision decision) {
         // Check if there are all-in players that would limit raises/all-ins
@@ -155,7 +163,7 @@ public class Game {
                 .anyMatch(p -> p.getIsAllIn() && !p.getHasFolded());
 
         // If there are all-in players, convert raises and all-ins to calls (unless
-        // player has fewer chips)
+        //  the player has fewer chips)
         PlayerDecision actualDecision = decision;
         String conversionMessage = null;
 
@@ -181,7 +189,9 @@ public class Game {
         if (actualDecision.action() == PlayerAction.RAISE) {
             int totalBetAfterRaise = player.getCurrentBet() + actualDecision.amount();
             if (totalBetAfterRaise <= currentHighestBet) {
-                throw new IllegalArgumentException(
+                logger.warn("[Game] Invalid raise: player {} tried to raise to {}, current highest bet is {}",
+                        player.getName(), totalBetAfterRaise, currentHighestBet);
+                throw new UnauthorisedActionException(
                         "Raise amount must result in a bet higher than current highest bet of " + currentHighestBet +
                                 ". Your current bet is " + player.getCurrentBet() +
                                 ", so you need to raise by at least "
@@ -494,7 +504,7 @@ public class Game {
             player.resetCurrentBet();
         }
         currentHighestBet = 0;
-        everyoneHasHadInitialTurn = false; // Reset for new betting round
+        everyoneHasHadInitialTurn = false; // Reset for the new betting round
     }
 
     /**

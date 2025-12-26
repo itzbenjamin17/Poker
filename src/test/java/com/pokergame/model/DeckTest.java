@@ -1,7 +1,10 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.Rank;
+import com.pokergame.enums.Suit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import com.pokergame.exception.BadRequestException;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.HashSet;
@@ -73,7 +76,7 @@ class DeckTest {
         }
 
         // Next attempt should throw exception
-        assertThrows(IllegalStateException.class, () -> deck.dealCard());
+        assertThrows(BadRequestException.class, () -> deck.dealCard());
     }
 
     @Test
@@ -83,8 +86,8 @@ class DeckTest {
             deck.dealCard();
         }
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> deck.dealCard());
         assertEquals("No more cards in the deck", exception.getMessage());
     }
@@ -112,24 +115,24 @@ class DeckTest {
         }
 
         assertEquals(42, remainingCards.size());
-        assertThrows(IllegalStateException.class, () -> deck.dealCard());
+        assertThrows(BadRequestException.class, () -> deck.dealCard());
     }
 
     @Test
     void testDealMultipleCardsWithInvalidNumber() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> deck.dealCards(0));
         assertEquals("Number of cards must be positive", exception.getMessage());
 
-        assertThrows(IllegalArgumentException.class, () -> deck.dealCards(-1));
-        assertThrows(IllegalArgumentException.class, () -> deck.dealCards(-5));
+        assertThrows(BadRequestException.class, () -> deck.dealCards(-1));
+        assertThrows(BadRequestException.class, () -> deck.dealCards(-5));
     }
 
     @Test
     void testDealMultipleCardsNotEnoughInDeck() {
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> deck.dealCards(53));
         assertTrue(exception.getMessage().contains("Not enough cards in deck"));
         assertTrue(exception.getMessage().contains("Requested: 53"));
@@ -146,7 +149,7 @@ class DeckTest {
         assertEquals(2, cards.size());
 
         // Now deck is empty, should throw exception
-        assertThrows(IllegalStateException.class, () -> deck.dealCards(1));
+        assertThrows(BadRequestException.class, () -> deck.dealCards(1));
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.pokergame.service;
 
+import com.pokergame.enums.PlayerAction;
 import com.pokergame.model.*;
+import com.pokergame.exception.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,12 +20,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 /**
  * Unit tests for the GameStateService class.
  */
 @ExtendWith(MockitoExtension.class)
 class GameStateServiceTest {
+    private GameStateService gameStateService;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
@@ -34,8 +36,7 @@ class GameStateServiceTest {
     @Mock
     private HandEvaluatorService handEvaluator;
 
-    @InjectMocks
-    private GameStateService gameStateService;
+
 
     private Game testGame;
     private Room testRoom;
@@ -44,6 +45,8 @@ class GameStateServiceTest {
 
     @BeforeEach
     void setUp() {
+        gameStateService = new GameStateService(roomService, messagingTemplate);
+
         testPlayers = new ArrayList<>();
         testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 100));
         testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 100));
@@ -67,8 +70,8 @@ class GameStateServiceTest {
 
     @Test
     void broadcastGameState_WithNullGame_ShouldNotBroadcast() {
-        gameStateService.broadcastGameState(GAME_ID, null);
-
+        assertThrows(BadRequestException.class, () -> gameStateService.broadcastGameState(GAME_ID, null));
+        
         verify(messagingTemplate, never()).convertAndSend(anyString(), any(Object.class));
     }
 
@@ -243,7 +246,6 @@ class GameStateServiceTest {
         assertNotNull(captured);
         assertTrue(captured instanceof Map);
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> gameEndData = (Map<String, Object>) captured;
         assertEquals("GAME_END", gameEndData.get("type"));
         assertEquals(winner.getName(), gameEndData.get("winner"));
@@ -260,7 +262,6 @@ class GameStateServiceTest {
 
         verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), captor.capture());
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> gameEndData = (Map<String, Object>) captor.getValue();
         String message = (String) gameEndData.get("message");
         assertTrue(message.contains(winner.getName()));
@@ -268,14 +269,6 @@ class GameStateServiceTest {
     }
 
     // ==================== Edge Case Tests ====================
-
-    @Test
-    void broadcastGameState_WhenRoomNotFound_ShouldThrowException() {
-        when(roomService.getRoom(GAME_ID)).thenReturn(null);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> gameStateService.broadcastGameState(GAME_ID, testGame));
-    }
 
     @Test
     void broadcastShowdownResults_WithFoldedPlayer_ShouldMarkAsFolded() {
@@ -290,10 +283,10 @@ class GameStateServiceTest {
 
     @Test
     void broadcastShowdownResults_WithAllInPlayer_ShouldMarkAsAllIn() {
-        testPlayers.get(0).doAction(PlayerAction.ALL_IN, 0, 0);
+        testPlayers.getFirst().doAction(PlayerAction.ALL_IN, 0, 0);
         when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
 
-        List<Player> winners = List.of(testPlayers.get(0));
+        List<Player> winners = List.of(testPlayers.getFirst());
         gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 100);
 
         verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));

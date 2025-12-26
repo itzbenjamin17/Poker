@@ -1,9 +1,11 @@
-package com.pokergame.dto;
+package com.pokergame.dto.response;
+
+import com.pokergame.dto.internal.PlayerJoinInfo;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record RoomData(
+public record RoomDataResponse(
         String roomId,
         String roomName,
         int maxPlayers,

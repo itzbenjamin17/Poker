@@ -1,13 +1,14 @@
 package com.pokergame.service;
 
-import com.pokergame.dto.PlayerDecision;
+import com.pokergame.dto.internal.PlayerDecision;
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.exception.UnauthorisedActionException;
+import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.model.Game;
-import com.pokergame.model.GamePhase;
+import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -21,11 +22,14 @@ public class PlayerActionService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlayerActionService.class);
 
-    @Autowired
-    private GameLifecycleService gameLifecycleService;
+    private final GameLifecycleService gameLifecycleService;
 
-    @Autowired
-    private GameStateService gameStateService;
+    private final GameStateService gameStateService;
+
+    public PlayerActionService(GameLifecycleService gameLifecycleService, GameStateService gameStateService) {
+        this.gameLifecycleService = gameLifecycleService;
+        this.gameStateService = gameStateService;
+    }
 
     // Betting round state tracking
     private final Map<String, Set<String>> playersWhoActedInInitialTurn = new HashMap<>();
@@ -35,17 +39,21 @@ public class PlayerActionService {
      * Validates the request, processes the decision, and handles game progression.
      *
      * @param gameId        the unique identifier of the game
-     * @param actionRequest the action request containing action type and amount
+     * @param actionRequest the action request containing the action type and amount
      * @param playerName    the authenticated player name (from JWT Principal)
-     * @throws SecurityException if the requesting player is not the current player
+     * @throws UnauthorisedActionException if the requesting player is not the
+     *                                     current player
+     * @throws ResourceNotFoundException   if the game is not found
      */
     public void processPlayerAction(String gameId, PlayerActionRequest actionRequest, String playerName) {
         Game game = gameLifecycleService.getGame(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found when processing player action in game: " + gameId);
+            logger.warn("Game not found for ID: {} when trying to process player action", gameId);
+            throw new ResourceNotFoundException(
+                    "Game not found:");
         }
 
-        // Synchronize on the game object to prevent concurrent modifications
+        // Synchronise on the game object to prevent concurrent modifications
         synchronized (game) {
             Player currentPlayer = game.getCurrentPlayer();
 
@@ -58,7 +66,8 @@ public class PlayerActionService {
             if (!currentPlayer.getName().equals(playerName)) {
                 logger.warn("Player name mismatch: expected {}, got {}",
                         currentPlayer.getName(), playerName);
-                throw new SecurityException("It's not your turn. Current player is: " + currentPlayer.getName());
+                throw new UnauthorisedActionException(
+                        "It's not your turn. Current player is: " + currentPlayer.getName());
             }
 
             PlayerDecision decision = new PlayerDecision(
@@ -114,7 +123,7 @@ public class PlayerActionService {
             } catch (Exception e) {
                 logger.error("Error in post-processing for game {} (action was successful): {}", gameId, e.getMessage(),
                         e);
-                // Re-broadcast to ensure clients have updated state
+                // Re-broadcast to ensure clients have the updated state
                 try {
                     gameStateService.broadcastGameState(gameId, game);
                 } catch (Exception broadcastError) {
@@ -124,7 +133,7 @@ public class PlayerActionService {
             }
 
             logger.debug("Player action processing complete for game {}", gameId);
-        } // End synchronized block
+        }
     }
 
     /**
@@ -150,7 +159,7 @@ public class PlayerActionService {
             int winningsPerPlayer = winners.isEmpty() ? 0 : potBeforeDistribution / winners.size();
             gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
 
-            // Delay before starting new hand to allow winner display
+            // Delay before starting the new hand to allow winner display
             new Thread(() -> {
                 try {
                     Thread.sleep(5000); // 5 seconds
@@ -166,7 +175,7 @@ public class PlayerActionService {
             return;
         }
 
-        // Check if we need to auto-advance because of all-in situation
+        // Check if we need to auto-advance because of an all-in situation
         long playersAbleToAct = game.getActivePlayers().stream()
                 .filter(p -> !p.getHasFolded() && !p.getIsAllIn())
                 .count();
@@ -174,7 +183,7 @@ public class PlayerActionService {
         logger.debug("Game {} status | Players able to act: {} | Betting round complete: {}",
                 gameId, playersAbleToAct, game.isBettingRoundComplete());
 
-        // Auto-advance if betting round is complete AND most players are all-in
+        // Auto-advance if the betting round is complete AND most players are all-in
         if (game.isBettingRoundComplete() && playersAbleToAct <= 1) {
             logger.info("All-in situation detected for game {}, auto-advancing to showdown", gameId);
             gameStateService.broadcastAutoAdvanceNotification(gameId, game);
@@ -209,7 +218,7 @@ public class PlayerActionService {
                 int winningsPerPlayer = winners.isEmpty() ? 0 : potBeforeDistribution / winners.size();
                 gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
 
-                // Delay before starting new hand
+                // Delay before starting the new hand
                 new Thread(() -> {
                     try {
                         Thread.sleep(5000);
@@ -289,7 +298,7 @@ public class PlayerActionService {
                 gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
                 gameStateService.broadcastAutoAdvanceComplete(gameId, game);
 
-                // Start new hand after delay
+                // Start the new hand after delay
                 Thread.sleep(5000);
                 logger.info("Starting new hand after auto-advance for game {}", gameId);
                 gameLifecycleService.startNewHand(gameId);

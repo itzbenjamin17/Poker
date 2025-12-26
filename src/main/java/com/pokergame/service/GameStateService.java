@@ -1,15 +1,18 @@
 package com.pokergame.service;
 
-import com.pokergame.dto.PrivatePlayerState;
-import com.pokergame.dto.PublicPlayerState;
+import com.pokergame.dto.response.PrivatePlayerState;
+import com.pokergame.dto.response.PublicPlayerState;
 import com.pokergame.dto.response.PlayerNotificationResponse;
 import com.pokergame.dto.response.PublicGameStateResponse;
+import com.pokergame.enums.PlayerStatus;
+import com.pokergame.enums.ResponseMessage;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.model.Game;
 import com.pokergame.model.Player;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -27,11 +30,14 @@ public class GameStateService {
 
     private static final Logger logger = LoggerFactory.getLogger(GameStateService.class);
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
+
+    public GameStateService(RoomService roomService, SimpMessagingTemplate messagingTemplate) {
+        this.roomService = roomService;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     /**
      * Broadcasts the current game state to all players in the game.
@@ -39,17 +45,18 @@ public class GameStateService {
      *
      * @param gameId the unique identifier of the game
      * @param game   the Game object containing the current state
+     * @throws BadRequestException if the game is null
      */
     public void broadcastGameState(String gameId, Game game) {
         if (game == null) {
             logger.warn("Cannot broadcast game state - game {} not found", gameId);
-            return;
+            throw new BadRequestException("Trying to broadcast state for a non existent room: " + gameId);
         }
 
         logger.debug("Broadcasting game state for game {}", gameId);
 
         messagingTemplate.convertAndSend("/game/" + gameId, buildPublicGameStateResponse(gameId, game));
-        
+
         // Sending a personalised game state to each player
         for (Player targetPlayer : game.getPlayers()) {
             messagingTemplate.convertAndSend(
@@ -62,9 +69,9 @@ public class GameStateService {
      * Reveals hole cards, hand ranks, and best hands for winning players only.
      *
      * @param gameId            the unique identifier of the game
-     * @param game              the Game object containing current state
+     * @param game              the Game object containing the current state
      * @param winners           the list of Player objects who won the hand
-     * @param winningsPerPlayer the amount of chips each winner receives
+     * @param winningsPerPlayer the number of chips each winner receives
      */
     public void broadcastShowdownResults(String gameId, Game game, List<Player> winners, int winningsPerPlayer) {
         if (game == null) {
@@ -73,7 +80,7 @@ public class GameStateService {
         }
 
         // Get room information
-        Room room = roomService.getRoom(gameId);
+        @SuppressWarnings("DuplicatedCode") Room room = roomService.getRoom(gameId);
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -88,8 +95,9 @@ public class GameStateService {
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
             boolean isWinner = winners.contains(player);
             boolean isActive = !player.getHasFolded() && !player.getIsOut();
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? PlayerStatus.OUT.getStatus()
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             return new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),
@@ -134,7 +142,7 @@ public class GameStateService {
      * progression.
      *
      * @param gameId          the unique identifier of the game
-     * @param game            the Game object containing current state
+     * @param game            the Game object containing the current state
      * @param isAutoAdvancing true if auto-advancing to showdown, false otherwise
      * @param message         the message to display to players about auto-advance
      *                        status
@@ -146,7 +154,7 @@ public class GameStateService {
         }
 
         // Get room information
-        Room room = roomService.getRoom(gameId);
+        @SuppressWarnings("DuplicatedCode") Room room = roomService.getRoom(gameId);
         int maxPlayers = room != null ? room.getMaxPlayers() : 0;
 
         // Get current player information
@@ -156,8 +164,9 @@ public class GameStateService {
 
         // Convert players to PlayerState DTOs
         List<PublicPlayerState> playersList = game.getPlayers().stream().map(player -> {
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? "OUT"
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             boolean isCurrentPlayer = player.equals(currentPlayer);
             return new PublicPlayerState(
                     player.getPlayerId(),
@@ -197,7 +206,7 @@ public class GameStateService {
      * Sent when all active players are all-in.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      */
     public void broadcastAutoAdvanceNotification(String gameId, Game game) {
         if (game == null) {
@@ -206,7 +215,7 @@ public class GameStateService {
         }
 
         messagingTemplate.convertAndSend("/game/" + gameId,
-                new PlayerNotificationResponse("AUTO_ADVANCE_START",
+                new PlayerNotificationResponse(ResponseMessage.AUTO_ADVANCE_START.getMessage(),
                         "All players are all-in. Auto-advancing to showdown...", null, gameId));
     }
 
@@ -215,7 +224,7 @@ public class GameStateService {
      * Sent after all community cards have been dealt and showdown is ready.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      */
     public void broadcastAutoAdvanceComplete(String gameId, Game game) {
         if (game == null) {
@@ -224,7 +233,7 @@ public class GameStateService {
         }
 
         messagingTemplate.convertAndSend("/game/" + gameId,
-                new PlayerNotificationResponse("AUTO_ADVANCE_COMPLETE", "", null, gameId));
+                new PlayerNotificationResponse(ResponseMessage.AUTO_ADVANCE_COMPLETE.getMessage(), "", null, gameId));
     }
 
     /**
@@ -254,7 +263,7 @@ public class GameStateService {
      */
     public void broadcastGameEnd(String gameId, Player winner) {
         Map<String, Object> gameEndData = new HashMap<>();
-        gameEndData.put("type", "GAME_END");
+        gameEndData.put("type", ResponseMessage.GAME_END.getMessage());
         gameEndData.put("winner", winner.getName());
         gameEndData.put("winnerChips", winner.getChips());
         gameEndData.put("gameId", gameId);
@@ -270,19 +279,23 @@ public class GameStateService {
      * Builds a PublicGameStateResponse object to be shown to all players in a game.
      *
      * @param gameId the unique identifier of the game
-     * @param game   the Game object containing current state
+     * @param game   the Game object containing the current state
      * @return a {@link PublicGameStateResponse}
+     * 
+     * @throws ResourceNotFoundException if the room is not found
      */
     private PublicGameStateResponse buildPublicGameStateResponse(String gameId, Game game) {
         Room room = roomService.getRoom(gameId);
         if (room == null) {
-            throw new IllegalArgumentException("Room not found");
+            logger.warn("Game state build failed: room not found for gameId {}", gameId);
+            throw new ResourceNotFoundException("Room not found");
         }
         List<PublicPlayerState> playerStateList = new ArrayList<>();
         Player currentPlayer = game.getCurrentPlayer();
         for (Player player : game.getPlayers()) {
-            String status = player.getHasFolded() ? "FOLDED"
-                    : player.getIsOut() ? "OUT" : player.getIsAllIn() ? "ALL_IN" : "ACTIVE";
+            String status = player.getHasFolded() ? PlayerStatus.FOLDED.getStatus()
+                    : player.getIsOut() ? "OUT"
+                            : player.getIsAllIn() ? PlayerStatus.ALL_IN.getStatus() : PlayerStatus.ACTIVE.getStatus();
             playerStateList.add(new PublicPlayerState(
                     player.getPlayerId(),
                     player.getName(),

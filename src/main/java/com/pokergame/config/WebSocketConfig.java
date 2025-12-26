@@ -1,6 +1,5 @@
 package com.pokergame.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -12,8 +11,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-    @Autowired
-    private WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+
+    public WebSocketConfig(WebSocketAuthInterceptor webSocketAuthInterceptor) {
+        this.webSocketAuthInterceptor = webSocketAuthInterceptor;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {

@@ -54,6 +54,7 @@ public class CreateRoomRequest {
         return playerName;
     }
 
+    @SuppressWarnings("unused")
     public void setPlayerName(String playerName) {
         this.playerName = playerName;
     }

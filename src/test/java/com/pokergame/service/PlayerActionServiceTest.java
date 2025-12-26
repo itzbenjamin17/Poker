@@ -1,6 +1,8 @@
 package com.pokergame.service;
 
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.enums.PlayerAction;
+import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,7 @@ class PlayerActionServiceTest {
 
     @BeforeEach
     void setUp() {
+        playerActionService = new PlayerActionService(gameLifecycleService, gameStateService);
         testPlayers = new ArrayList<>();
         testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 1000));
         testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 1000));
@@ -60,8 +63,8 @@ class PlayerActionServiceTest {
 
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        com.pokergame.exception.ResourceNotFoundException exception = assertThrows(
+                com.pokergame.exception.ResourceNotFoundException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, "Player1"));
 
         assertTrue(exception.getMessage().contains("Game not found"));
@@ -80,8 +83,8 @@ class PlayerActionServiceTest {
 
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.CALL, null);
 
-        SecurityException exception = assertThrows(
-                SecurityException.class,
+        UnauthorisedActionException exception = assertThrows(
+                UnauthorisedActionException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, nonCurrentPlayerName));
 
         assertTrue(exception.getMessage().contains("not your turn"));
@@ -156,7 +159,7 @@ class PlayerActionServiceTest {
         int invalidRaiseAmount = 1;
         PlayerActionRequest request = new PlayerActionRequest(PlayerAction.RAISE, invalidRaiseAmount);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(UnauthorisedActionException.class,
                 () -> playerActionService.processPlayerAction(GAME_ID, request, currentPlayer.getName()));
     }
 

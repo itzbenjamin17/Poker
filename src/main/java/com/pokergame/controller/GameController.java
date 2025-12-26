@@ -6,7 +6,6 @@ import com.pokergame.service.GameLifecycleService;
 import com.pokergame.service.PlayerActionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -26,11 +25,15 @@ import java.security.Principal;
 public class GameController {
     private static final Logger logger = LoggerFactory.getLogger(GameController.class);
 
-    @Autowired
-    private GameLifecycleService gameLifecycleService;
+    private final GameLifecycleService gameLifecycleService;
 
-    @Autowired
-    private PlayerActionService playerActionService;
+    private final PlayerActionService playerActionService;
+
+    // Dependency Injection
+    public GameController(PlayerActionService playerActionService, GameLifecycleService gameLifecycleService) {
+        this.playerActionService = playerActionService;
+        this.gameLifecycleService = gameLifecycleService;
+    }
 
     /**
      * Processes a player action (fold, check, call, raise, all-in).

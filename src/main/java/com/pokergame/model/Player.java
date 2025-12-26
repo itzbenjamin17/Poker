@@ -1,5 +1,12 @@
 package com.pokergame.model;
 
+import com.pokergame.enums.HandRank;
+import com.pokergame.enums.PlayerAction;
+import com.pokergame.exception.BadRequestException;
+import com.pokergame.exception.UnauthorisedActionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,10 +14,14 @@ import java.util.List;
  * Represents a poker player with hole cards, chips, and betting capabilities.
  * Manages player state including folding, all-in status, and current bets.
  *
- * <p><b>WARNING:</b> Very little validation is done in this class, make sure inputs to methods in this class are valid</p>
+ * <p>
+ * <b>WARNING:</b> Very little validation is done in this class, make sure
+ * inputs to methods in this class are valid
+ * </p>
  *
  */
 public class Player {
+        private static final Logger logger = LoggerFactory.getLogger(Player.class);
     private final String name;
     private final String playerId;
     private List<Card> holeCards;
@@ -25,15 +36,17 @@ public class Player {
     /**
      * Creates a new player with the specified name and starting chip count.
      *
-     * @param name the player's name
+     * @param name  the player's name
      * @param chips the starting number of chips for the player
      */
     public Player(String name, String playerId, int chips) {
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Player name required");
+            logger.error("Invalid player name: '{}'", name);
+            throw new BadRequestException("Player name required");
         }
         if (chips < 0) {
-            throw new IllegalArgumentException("Chips cannot be negative");
+            logger.error("Invalid chips: {}", chips);
+            throw new BadRequestException("Chips cannot be negative");
         }
         this.name = name;
         this.playerId = playerId;
@@ -73,7 +86,7 @@ public class Player {
      * @param pot the current pot value
      * @return the updated pot value after going all-in
      */
-    private int goAllIn(int pot){
+    private int goAllIn(int pot) {
         isAllIn = true;
         pot += chips;
         currentBet += chips;
@@ -84,14 +97,19 @@ public class Player {
     /**
      * Executes a player action and returns the updated pot value.
      *
-     * <p><b>IMPORTANT:</b> The caller is responsible for calculating the correct
+     * <p>
+     * <b>IMPORTANT:</b> The caller is responsible for calculating the correct
      * amount needed for betting actions (BET, RAISE, CALL). This method does NOT
-     * validate or calculate bet amounts - it uses the provided amount directly.</p>
-     * @param action the poker action to perform (FOLD, CHECK, CALL, BET, RAISE, ALL_IN)
-     * @param amount the chip amount for betting actions (ignored for FOLD, CHECK, ALL_IN)
-     * @param pot the current pot value
+     * validate or calculate bet amounts - it uses the provided amount directly.
+     * </p>
+     * 
+     * @param action the poker action to perform (FOLD, CHECK, CALL, BET, RAISE,
+     *               ALL_IN)
+     * @param amount the chip amount for betting actions (ignored for FOLD, CHECK,
+     *               ALL_IN)
+     * @param pot    the current pot value
      * @return the updated pot value after the action
-     * @throws IllegalArgumentException if the action is not recognized
+     * @throws UnauthorisedActionException if the action is not recognised
      */
     public int doAction(PlayerAction action, int amount, int pot) {
         switch (action) {
@@ -108,14 +126,14 @@ public class Player {
             case CHECK -> {
                 return pot;
             }
-            default -> throw new IllegalArgumentException("Unknown action: " + action);
+            default -> throw new UnauthorisedActionException("Invalid action requested. Please try again.");
         }
     }
 
     /**
      * Moves chips from player to pot and updates the current bet.
      *
-     * @param pot the current pot value
+     * @param pot    the current pot value
      * @param amount the amount of chips to pay
      * @return the updated pot value
      */
@@ -127,7 +145,8 @@ public class Player {
     }
 
     /**
-     *Adds the amount (most likely from the pot) and adds it to the player's chips
+     * Adds the amount (most likely from the pot) and adds it to the player's chips
+     * 
      * @param amount the amount to add to the chips
      */
     public void addChips(int amount) {
@@ -139,7 +158,9 @@ public class Player {
      *
      * @return the player's hole card list
      */
-    public List<Card> getHoleCards(){return holeCards;}
+    public List<Card> getHoleCards() {
+        return holeCards;
+    }
 
     /**
      * Returns the player's current bet in this round.
@@ -164,7 +185,7 @@ public class Player {
      *
      * @return the player's name
      */
-    public String getName(){
+    public String getName() {
         return name;
     }
 
@@ -182,7 +203,6 @@ public class Player {
      *
      * @return true if the player is all-in, false otherwise
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean getIsAllIn() {
         return isAllIn;
     }
@@ -192,7 +212,6 @@ public class Player {
      *
      * @return true if the player is out, false otherwise
      */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean getIsOut() {
         return isOut;
     }
@@ -210,14 +229,18 @@ public class Player {
      *
      * @return list of cards representing the best hand
      */
-    public List<Card> getBestHand() {return bestHand;}
+    public List<Card> getBestHand() {
+        return bestHand;
+    }
 
     /**
      * Returns the player's ID
      *
      * @return returns the player's ID
      */
-    public String getPlayerId() {return playerId;}
+    public String getPlayerId() {
+        return playerId;
+    }
 
     /**
      * Returns the poker hand ranking for this player's best hand.
@@ -227,7 +250,9 @@ public class Player {
      *
      * @return the HandRank enum representing the player's best hand
      */
-    public HandRank getHandRank() {return handRank;}
+    public HandRank getHandRank() {
+        return handRank;
+    }
 
     public void setBestHand(List<Card> cards) {
         bestHand = cards;

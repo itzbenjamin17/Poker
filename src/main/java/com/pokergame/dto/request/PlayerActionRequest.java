@@ -1,6 +1,7 @@
 package com.pokergame.dto.request;
 
-import com.pokergame.model.PlayerAction;
+import com.pokergame.enums.PlayerAction;
+import com.pokergame.exception.BadRequestException;
 import jakarta.validation.constraints.*;
 
 /**
@@ -20,7 +21,7 @@ public record PlayerActionRequest(
         // Validate amount is provided for betting actions
         if ((action == PlayerAction.BET || action == PlayerAction.RAISE)) {
             if (amount == null || amount <= 0) {
-                throw new IllegalArgumentException("BET and RAISE actions require a positive amount");
+                throw new BadRequestException("Please enter a positive amount for BET or RAISE actions");
             }
         }
 
@@ -28,8 +29,8 @@ public record PlayerActionRequest(
         if ((action == PlayerAction.FOLD || action == PlayerAction.CHECK ||
                 action == PlayerAction.CALL || action == PlayerAction.ALL_IN)) {
             if (amount != null && amount != 0) {
-                throw new IllegalArgumentException(
-                        action + " action should not include an amount (server calculates this)");
+                throw new BadRequestException(
+                        String.format("No amount is needed for %s actions", action));
             }
         }
     }

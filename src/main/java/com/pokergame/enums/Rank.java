@@ -1,4 +1,4 @@
-package com.pokergame.model;
+package com.pokergame.enums;
 
 public enum Rank {
     TWO(2, "2"),
