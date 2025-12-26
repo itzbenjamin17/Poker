@@ -13,7 +13,6 @@ import com.pokergame.model.Player;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
@@ -31,11 +30,14 @@ public class GameStateService {
 
     private static final Logger logger = LoggerFactory.getLogger(GameStateService.class);
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
+
+    public GameStateService(RoomService roomService, SimpMessagingTemplate messagingTemplate) {
+        this.roomService = roomService;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     /**
      * Broadcasts the current game state to all players in the game.

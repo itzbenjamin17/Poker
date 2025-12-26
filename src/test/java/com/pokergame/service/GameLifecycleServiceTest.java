@@ -37,7 +37,6 @@ class GameLifecycleServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
-    @InjectMocks
     private GameLifecycleService gameLifecycleService;
 
     private Room testRoom;
@@ -45,6 +44,8 @@ class GameLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
+        gameLifecycleService = new GameLifecycleService(roomService, handEvaluator, gameStateService, messagingTemplate);
+
         testRoom = new Room(
                 ROOM_ID,
                 "Test Room",

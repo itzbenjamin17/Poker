@@ -28,7 +28,7 @@ public class Deck {
     }
 
     /**
-     * Initializes the deck with all 52 cards.
+     * Initialises the deck with all 52 cards.
      */
     private void initializeDeck() {
         for (Suit suit : Suit.values()) {

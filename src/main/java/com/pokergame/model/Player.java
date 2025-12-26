@@ -109,7 +109,7 @@ public class Player {
      *               ALL_IN)
      * @param pot    the current pot value
      * @return the updated pot value after the action
-     * @throws UnauthorisedActionException if the action is not recognized
+     * @throws UnauthorisedActionException if the action is not recognised
      */
     public int doAction(PlayerAction action, int amount, int pot) {
         switch (action) {

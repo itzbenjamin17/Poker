@@ -12,7 +12,6 @@ import com.pokergame.service.RoomService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +19,7 @@ import java.security.Principal;
 
 /**
  * REST controller for poker room management.
- * Handles room creation, joining, leaving, and game initialization.
+ * Handles room creation, joining, leaving, and game initialisation.
  */
 @RestController
 @RequestMapping("/room")
@@ -28,14 +27,18 @@ import java.security.Principal;
 public class RoomController {
     private static final Logger logger = LoggerFactory.getLogger(RoomController.class);
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
 
-    @Autowired
-    private GameLifecycleService gameLifecycleService;
+    private final GameLifecycleService gameLifecycleService;
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
+
+    // Dependency Injection
+    public RoomController(RoomService roomService, GameLifecycleService gameLifecycleService, JwtService jwtService) {
+        this.roomService = roomService;
+        this.gameLifecycleService = gameLifecycleService;
+        this.jwtService = jwtService;
+    }
 
     /**
      * Creates a new poker room. The creating player becomes the room host.
@@ -121,7 +124,7 @@ public class RoomController {
      * @param roomId    room identifier
      * @param principal authenticated player (must be host)
      * @return created game ID
-     * @throws UnauthorisedActionException if player is not the room host
+     * @throws UnauthorisedActionException if the player is not the room host
      */
     @PostMapping("/{roomId}/start-game")
     public ResponseEntity<ApiResponse<String>> startGame(

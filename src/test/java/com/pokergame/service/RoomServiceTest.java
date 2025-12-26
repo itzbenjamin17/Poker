@@ -28,13 +28,13 @@ class RoomServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
-    @InjectMocks
     private RoomService roomService;
 
     private CreateRoomRequest validCreateRequest;
 
     @BeforeEach
     void setUp() {
+        roomService = new RoomService(messagingTemplate);
         validCreateRequest = new CreateRoomRequest(
                 "Test Room",
                 "HostPlayer",

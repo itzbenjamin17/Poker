@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class PokerApplicationTests {
 
+    @SuppressWarnings("EmptyMethod")
     @Test
     void contextLoads() {
     }

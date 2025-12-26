@@ -12,7 +12,6 @@ import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +28,11 @@ public class RoomService {
 
     private static final Logger logger = LoggerFactory.getLogger(RoomService.class);
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public RoomService(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     // Room storage
     private final Map<String, Room> rooms = new ConcurrentHashMap<>();
@@ -42,7 +44,7 @@ public class RoomService {
      * @param request The room creation request containing room name, host, and game
      *                settings
      * @return The unique room ID for the created room
-     * @throws BadRequestException if room name is already taken
+     * @throws BadRequestException if the room name is already taken
      */
     public String createRoom(CreateRoomRequest request) {
         if (isRoomNameTaken(request.getRoomName())) {
@@ -105,21 +107,21 @@ public class RoomService {
             throw new ResourceNotFoundException("Room not found");
         }
 
-        // Check password if room is private
+        // Check password if the room is private
         if (room.hasPassword() && !room.checkPassword(joinRequest.password())) {
             logger.warn("Invalid password attempt for room {} by player {}", room.getRoomName(),
                     joinRequest.playerName());
             throw new BadRequestException("Invalid password");
         }
 
-        // Check if room is full
+        // Check if the room is full
         if (room.getPlayers().size() >= room.getMaxPlayers()) {
             logger.warn("Join attempt failed: room {} is full (player: {})", room.getRoomName(),
                     joinRequest.playerName());
             throw new UnauthorisedActionException("Room is full");
         }
 
-        // Check if player name already exists
+        // Check if the player name already exists
         if (room.hasPlayer(joinRequest.playerName())) {
             logger.warn("Join attempt failed: player name '{}' already taken in room {}", joinRequest.playerName(),
                     room.getRoomName());

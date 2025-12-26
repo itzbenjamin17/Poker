@@ -22,7 +22,7 @@ public record PublicGameStateResponse(
         Boolean isAutoAdvancing,
         String autoAdvanceMessage) {
 
-    // For normal game state that isn't showdown and isn't auto advance
+    // For normal game state that isn't a showdown and isn't auto advance
     public PublicGameStateResponse(int maxPlayers,
                                    int pot,
                                    GamePhase phase,
@@ -46,7 +46,7 @@ public record PublicGameStateResponse(
         null);
 
     }
-    // For normal showdown
+    // For a normal showdown
 
     public PublicGameStateResponse(int maxPlayers,
                                    int pot,

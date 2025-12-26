@@ -10,7 +10,6 @@ import com.pokergame.model.Player;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -26,23 +25,27 @@ public class GameLifecycleService {
 
     private static final Logger logger = LoggerFactory.getLogger(GameLifecycleService.class);
 
-    @Autowired
-    private RoomService roomService;
+    private final RoomService roomService;
 
-    @Autowired
-    private HandEvaluatorService handEvaluator;
+    private final HandEvaluatorService handEvaluator;
 
-    @Autowired
-    private GameStateService gameStateService;
+    private final GameStateService gameStateService;
 
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    // Dependency Injection
+    GameLifecycleService(RoomService roomService, HandEvaluatorService handEvaluatorService, GameStateService gameStateService, SimpMessagingTemplate messagingTemplate) {
+        this.roomService = roomService;
+        this.handEvaluator = handEvaluatorService;
+        this.gameStateService = gameStateService;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     // Game state storage
     private final Map<String, Game> activeGames = new HashMap<>();
 
     /**
-     * Creates and initializes an actual poker game from an existing room.
+     * Creates and initialises an actual poker game from an existing room.
      * Requires at least 2 players in the room to start. Converts room players
      * to game players with buy-in chips and starts the first hand.
      *
@@ -175,7 +178,7 @@ public class GameLifecycleService {
                 return;
             }
 
-            // If the leaving player was the current player, advance to next player
+            // If the leaving player was the current player, advance to the next player
             if (wasCurrentPlayer && !game.getActivePlayers().isEmpty()) {
                 game.nextPlayer();
             }

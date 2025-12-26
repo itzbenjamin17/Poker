@@ -9,7 +9,6 @@ import com.pokergame.dto.response.TokenResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,11 +25,16 @@ import java.security.Principal;
 public class ApiController {
     private static final Logger logger = LoggerFactory.getLogger(ApiController.class);
 
-    @Autowired
-    private RoomController roomController;
+    private final RoomController roomController;
 
-    @Autowired
-    private GameController gameController;
+    private final GameController gameController;
+
+    // Dependency Injection
+    public ApiController(GameController gameController, RoomController roomController) {
+        this.gameController = gameController;
+        this.roomController = roomController;
+    }
+
 
     // ==================== Room Endpoints ====================
 

@@ -9,7 +9,6 @@ import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,11 +22,14 @@ public class PlayerActionService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlayerActionService.class);
 
-    @Autowired
-    private GameLifecycleService gameLifecycleService;
+    private final GameLifecycleService gameLifecycleService;
 
-    @Autowired
-    private GameStateService gameStateService;
+    private final GameStateService gameStateService;
+
+    public PlayerActionService(GameLifecycleService gameLifecycleService, GameStateService gameStateService) {
+        this.gameLifecycleService = gameLifecycleService;
+        this.gameStateService = gameStateService;
+    }
 
     // Betting round state tracking
     private final Map<String, Set<String>> playersWhoActedInInitialTurn = new HashMap<>();

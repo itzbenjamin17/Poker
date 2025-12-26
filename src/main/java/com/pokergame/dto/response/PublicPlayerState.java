@@ -21,7 +21,7 @@ public record PublicPlayerState(
         Integer chipsWon
 
 ) {
-    // For non showdown states
+    // For non-showdown states
     public PublicPlayerState (String id, String name, int chips, int currentBet, String status,
                               boolean isAllIn, boolean isCurrentPlayer, boolean hasFolded){
         this(id, name, chips, currentBet, status, isAllIn, isCurrentPlayer, hasFolded, null, null, null, null);

@@ -37,7 +37,7 @@ public class Game {
     private final int smallBlind;
     private final int bigBlind;
 
-    // Track if everyone has had their initial turn in current betting round
+    // Track if everyone has had their initial turn in the current betting round
     private boolean everyoneHasHadInitialTurn;
 
     /**
@@ -153,7 +153,7 @@ public class Game {
      *
      * @param player   the player making the decision
      * @param decision the player's betting decision (action and amount)
-     * @return a message if the action was converted (e.g., raise to call), null
+     * @return a message if the action was converted (e.g. raise to call), null
      *         otherwise
      * @throws UnauthorisedActionException if a raise amount is invalid
      */
@@ -163,7 +163,7 @@ public class Game {
                 .anyMatch(p -> p.getIsAllIn() && !p.getHasFolded());
 
         // If there are all-in players, convert raises and all-ins to calls (unless
-        // player has fewer chips)
+        //  the player has fewer chips)
         PlayerDecision actualDecision = decision;
         String conversionMessage = null;
 
@@ -504,7 +504,7 @@ public class Game {
             player.resetCurrentBet();
         }
         currentHighestBet = 0;
-        everyoneHasHadInitialTurn = false; // Reset for new betting round
+        everyoneHasHadInitialTurn = false; // Reset for the new betting round
     }
 
     /**

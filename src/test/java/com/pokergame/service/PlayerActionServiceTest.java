@@ -43,6 +43,7 @@ class PlayerActionServiceTest {
 
     @BeforeEach
     void setUp() {
+        playerActionService = new PlayerActionService(gameLifecycleService, gameStateService);
         testPlayers = new ArrayList<>();
         testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 1000));
         testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 1000));

@@ -3,7 +3,6 @@ package com.pokergame.config;
 import com.pokergame.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -24,8 +23,11 @@ import java.security.Principal;
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketAuthInterceptor.class);
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
+
+    public WebSocketAuthInterceptor(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {

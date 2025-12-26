@@ -25,6 +25,7 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class GameStateServiceTest {
+    private GameStateService gameStateService;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
@@ -35,8 +36,7 @@ class GameStateServiceTest {
     @Mock
     private HandEvaluatorService handEvaluator;
 
-    @InjectMocks
-    private GameStateService gameStateService;
+
 
     private Game testGame;
     private Room testRoom;
@@ -45,6 +45,8 @@ class GameStateServiceTest {
 
     @BeforeEach
     void setUp() {
+        gameStateService = new GameStateService(roomService, messagingTemplate);
+
         testPlayers = new ArrayList<>();
         testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 100));
         testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 100));
@@ -281,10 +283,10 @@ class GameStateServiceTest {
 
     @Test
     void broadcastShowdownResults_WithAllInPlayer_ShouldMarkAsAllIn() {
-        testPlayers.get(0).doAction(PlayerAction.ALL_IN, 0, 0);
+        testPlayers.getFirst().doAction(PlayerAction.ALL_IN, 0, 0);
         when(roomService.getRoom(GAME_ID)).thenReturn(testRoom);
 
-        List<Player> winners = List.of(testPlayers.get(0));
+        List<Player> winners = List.of(testPlayers.getFirst());
         gameStateService.broadcastShowdownResults(GAME_ID, testGame, winners, 100);
 
         verify(messagingTemplate).convertAndSend(eq("/game/" + GAME_ID), any(Object.class));
