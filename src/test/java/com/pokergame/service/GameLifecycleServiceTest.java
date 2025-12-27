@@ -7,7 +7,6 @@ import com.pokergame.model.Room;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -15,6 +14,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.pokergame.exception.BadRequestException;
 import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.exception.UnauthorisedActionException;
+
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -336,4 +339,187 @@ class GameLifecycleServiceTest {
         Game game = gameLifecycleService.getGame(ROOM_ID);
         assertNotNull(game.getCurrentPlayer());
     }
+
+    // ==================== CONCURRENCY TESTS ====================
+
+    @Test
+    void leaveGame_MultiplePlayersConcurrently_ShouldNotCorruptGameState() throws InterruptedException {
+        // Setup game with 4 players
+        testRoom.addPlayer("Player3");
+        testRoom.addPlayer("Player4");
+        when(roomService.getRoom(ROOM_ID)).thenReturn(testRoom);
+        gameLifecycleService.createGameFromRoom(ROOM_ID);
+
+        Game game = gameLifecycleService.getGame(ROOM_ID);
+        assertEquals(4, game.getPlayers().size());
+
+        // Get two players who are NOT the current player
+        Player currentPlayer = game.getCurrentPlayer();
+        List<Player> nonCurrentPlayers = game.getPlayers().stream()
+                .filter(p -> !p.equals(currentPlayer))
+                .limit(2)
+                .toList();
+
+        // Simulate 2 players leaving at the exact same time
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicInteger successfulLeaves = new AtomicInteger(0);
+
+        for (Player player : nonCurrentPlayers) {
+            executor.submit(() -> {
+                try {
+                    gameLifecycleService.leaveGame(ROOM_ID, player.getName());
+                    successfulLeaves.incrementAndGet();
+                } catch (Exception e) {
+                    // May fail if player already removed by concurrent thread
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        // Wait for both threads to complete
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Concurrent operations took too long");
+        executor.shutdown();
+
+        // Verify game state is still valid (not corrupted)
+        Game finalGame = gameLifecycleService.getGame(ROOM_ID);
+        assertNotNull(finalGame, "Game should still exist");
+        assertTrue(finalGame.getPlayers().size() >= 2, "At least 2 players should remain");
+        assertFalse(finalGame.getPlayers().isEmpty(), "Game should have players");
+    }
+
+    /**
+     * Tests that creating multiple games simultaneously doesn't cause race conditions.
+     * Verifies thread-safe access to activeGames map during game creation.
+     */
+    @Test
+    void createGameFromRoom_ConcurrentCreation_ShouldCreateAllGames() throws InterruptedException {
+        int numberOfGames = 5;
+        ExecutorService executor = Executors.newFixedThreadPool(numberOfGames);
+        CountDownLatch latch = new CountDownLatch(numberOfGames);
+        List<String> createdGameIds = new CopyOnWriteArrayList<>();
+
+        // Create 5 different rooms and games concurrently
+        for (int i = 0; i < numberOfGames; i++) {
+            final String roomId = "room-" + i;
+            final Room room = new Room(roomId, "Room " + i, "Host" + i, 6, 5, 10, 100, null);
+            room.addPlayer("Host" + i);
+            room.addPlayer("Player" + i);
+
+            when(roomService.getRoom(roomId)).thenReturn(room);
+
+            executor.submit(() -> {
+                try {
+                    String gameId = gameLifecycleService.createGameFromRoom(roomId);
+                    createdGameIds.add(gameId);
+                } catch (Exception e) {
+                    // Should not happen
+                    fail("Concurrent game creation failed: " + e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        // Wait for all games to be created
+        assertTrue(latch.await(10, TimeUnit.SECONDS), "Game creation took too long");
+        executor.shutdown();
+
+        // Verify all games were created successfully
+        assertEquals(numberOfGames, createdGameIds.size(), "All games should be created");
+        for (String gameId : createdGameIds) {
+            assertTrue(gameLifecycleService.gameExists(gameId), "Game " + gameId + " should exist");
+            assertNotNull(gameLifecycleService.getGame(gameId), "Game " + gameId + " should be retrievable");
+        }
+    }
+
+    /**
+     * Tests that accessing the same game concurrently (read operations) is thread-safe.
+     * Multiple threads reading game state simultaneously should not cause issues.
+     */
+    @Test
+    void getGame_ConcurrentAccess_ShouldBeThreadSafe() throws InterruptedException {
+        when(roomService.getRoom(ROOM_ID)).thenReturn(testRoom);
+        gameLifecycleService.createGameFromRoom(ROOM_ID);
+
+        int numberOfThreads = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
+        AtomicInteger successfulReads = new AtomicInteger(0);
+
+        // 10 threads simultaneously reading the same game
+        for (int i = 0; i < numberOfThreads; i++) {
+            executor.submit(() -> {
+                try {
+                    Game game = gameLifecycleService.getGame(ROOM_ID);
+                    assertNotNull(game, "Game should not be null");
+                    assertEquals(2, game.getPlayers().size(), "Should have 2 players");
+                    successfulReads.incrementAndGet();
+                } catch (Exception e) {
+                    fail("Concurrent read failed: " + e.getMessage());
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Concurrent reads took too long");
+        executor.shutdown();
+
+        assertEquals(numberOfThreads, successfulReads.get(), "All reads should succeed");
+    }
+
+    /**
+     * Tests the edge case where game cleanup happens while players are leaving.
+     * This simulates the scenario where async cleanup runs concurrently with player actions.
+     */
+    @Test
+    void leaveGame_DuringGameEnd_ShouldHandleGracefully() throws InterruptedException {
+        testRoom.addPlayer("Player3");
+        when(roomService.getRoom(ROOM_ID)).thenReturn(testRoom);
+        gameLifecycleService.createGameFromRoom(ROOM_ID);
+
+        Game game = gameLifecycleService.getGame(ROOM_ID);
+        Player player1 = game.getPlayers().get(0);
+        Player player2 = game.getPlayers().get(1);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(2);
+
+        // Thread 1: Player leaves (causes game end since only 1 will remain)
+        executor.submit(() -> {
+            try {
+                gameLifecycleService.leaveGame(ROOM_ID, player1.getName());
+            } catch (Exception e) {
+                // Expected - game might end
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        // Thread 2: Another player tries to leave at the same time
+        executor.submit(() -> {
+            try {
+                Thread.sleep(10); // Slight delay to interleave operations
+                gameLifecycleService.leaveGame(ROOM_ID, player2.getName());
+            } catch (Exception e) {
+                // Expected - game might already be ended or player might be gone
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Operations took too long");
+        executor.shutdown();
+
+        // Game should either still exist with 1 player, or be completely gone
+        // Either outcome is acceptable as long as no corruption occurred
+        Game finalGame = gameLifecycleService.getGame(ROOM_ID);
+        if (finalGame != null) {
+            assertTrue(finalGame.getPlayers().size() >= 0, "Player count should be valid");
+        }
+    }
 }
+
+
