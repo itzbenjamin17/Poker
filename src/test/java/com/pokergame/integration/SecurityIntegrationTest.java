@@ -78,7 +78,7 @@ class SecurityIntegrationTest {
                     .body(String.class);
 
             assertNotNull(response);
-            assertTrue(response.contains("\"success\":true"));
+            assertTrue(response.contains("\"message\":\"Room created successfully\""));
             assertTrue(response.contains("\"token\""));
             assertTrue(response.contains("\"roomId\""));
         }
@@ -109,7 +109,7 @@ class SecurityIntegrationTest {
                     .body(String.class);
 
             assertNotNull(response);
-            assertTrue(response.contains("\"success\":true"));
+            assertTrue(response.contains("\"message\":\"Successfully joined room\""));
             assertTrue(response.contains("\"token\""));
         }
     }
@@ -141,7 +141,7 @@ class SecurityIntegrationTest {
                     .body(String.class);
 
             assertNotNull(response);
-            assertTrue(response.contains("\"success\":true"));
+            assertTrue(response.contains("\"message\":\"Successfully left room\""));
         }
 
         @Test
@@ -267,7 +267,7 @@ class SecurityIntegrationTest {
                     .body(String.class);
 
             assertNotNull(response);
-            assertTrue(response.contains("\"success\":true"));
+            assertTrue(response.contains("\"message\":\"Game started successfully\""));
         }
     }
 

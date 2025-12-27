@@ -11,8 +11,8 @@ import com.pokergame.model.Player;
 import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -36,15 +36,21 @@ public class GameLifecycleService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    private final ApplicationEventPublisher eventPublisher;
+
     // Dependency Injection
-    GameLifecycleService(RoomService roomService, HandEvaluatorService handEvaluatorService, GameStateService gameStateService, SimpMessagingTemplate messagingTemplate) {
+    GameLifecycleService(RoomService roomService,
+                         HandEvaluatorService handEvaluatorService,
+                         GameStateService gameStateService,
+                         SimpMessagingTemplate messagingTemplate,
+                         ApplicationEventPublisher eventPublisher) {
         this.roomService = roomService;
         this.handEvaluator = handEvaluatorService;
         this.gameStateService = gameStateService;
         this.messagingTemplate = messagingTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
-    // Game state storage
     private final Map<String, Game> activeGames = new ConcurrentHashMap<>();
 
     /**
@@ -221,8 +227,13 @@ public class GameLifecycleService {
         eventPublisher.publishEvent(new GameCleanupEvent(gameId, 3000));
     }
 
+    /**
+     * Cleans up the finished game so it no longer uses resources
+     *
+     * @param gameId id of the game that is now done
+     */
+
     public void performGameCleanup(String gameId) {
-        // logic moved from gameEndCleanup
         activeGames.remove(gameId);
         roomService.destroyRoom(gameId);
         logger.info("Game {} and associated room cleaned up", gameId);

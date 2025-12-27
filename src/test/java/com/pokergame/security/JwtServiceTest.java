@@ -350,7 +350,7 @@ class JwtServiceTest {
 
     @Test
     void tokenExpiration_ShouldBeRespected() throws InterruptedException {
-        long shortExpiration = 2000L; // 2 seconds
+        long shortExpiration = 1900L;
         JwtService shortLivedService = new JwtService();
         ReflectionTestUtils.setField(shortLivedService, "secretKeyString", TEST_SECRET);
         ReflectionTestUtils.setField(shortLivedService, "expirationMillis", shortExpiration);
@@ -362,7 +362,7 @@ class JwtServiceTest {
         assertTrue(shortLivedService.isTokenValid(token), "Token should be valid immediately after generation");
 
         // Wait for token to expire
-        Thread.sleep(2500);
+        Thread.sleep(2000);
 
         // Token should now be invalid
         assertFalse(shortLivedService.isTokenValid(token), "Token should be invalid after expiration");

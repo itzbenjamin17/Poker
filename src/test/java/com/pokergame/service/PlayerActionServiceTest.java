@@ -7,9 +7,9 @@ import com.pokergame.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,9 @@ class PlayerActionServiceTest {
     @Mock
     private HandEvaluatorService handEvaluator;
 
-    @InjectMocks
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+
     private PlayerActionService playerActionService;
 
     private Game testGame;
@@ -48,7 +50,7 @@ class PlayerActionServiceTest {
 
     @BeforeEach
     void setUp() {
-        playerActionService = new PlayerActionService(gameLifecycleService, gameStateService);
+        playerActionService = new PlayerActionService(gameLifecycleService, gameStateService, applicationEventPublisher);
         testPlayers = new ArrayList<>();
         testPlayers.add(new Player("Player1", UUID.randomUUID().toString(), 1000));
         testPlayers.add(new Player("Player2", UUID.randomUUID().toString(), 1000));

@@ -2,14 +2,15 @@ package com.pokergame.service;
 
 import com.pokergame.dto.internal.PlayerDecision;
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.event.AutoAdvanceEvent;
+import com.pokergame.event.StartNewHandEvent;
 import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.model.Game;
-import com.pokergame.enums.GamePhase;
 import com.pokergame.model.Player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -28,12 +29,14 @@ public class PlayerActionService {
 
     private final GameStateService gameStateService;
 
-    public PlayerActionService(GameLifecycleService gameLifecycleService, GameStateService gameStateService) {
+    private final ApplicationEventPublisher eventPublisher;
+
+    public PlayerActionService(GameLifecycleService gameLifecycleService, GameStateService gameStateService,  ApplicationEventPublisher eventPublisher) {
         this.gameLifecycleService = gameLifecycleService;
         this.gameStateService = gameStateService;
+        this.eventPublisher = eventPublisher;
     }
 
-    // Betting round state tracking
     private final Map<String, Set<String>> playersWhoActedInInitialTurn = new ConcurrentHashMap<>();
 
     /**
@@ -162,7 +165,7 @@ public class PlayerActionService {
             gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
 
             // Delay before starting the new hand to allow winner display
-            startNewHandAfterDelay(gameId, 5000);
+            eventPublisher.publishEvent(new StartNewHandEvent(gameId, 5000));
             return;
         }
 
@@ -178,7 +181,7 @@ public class PlayerActionService {
         if (game.isBettingRoundComplete() && playersAbleToAct <= 1) {
             logger.info("All-in situation detected for game {}, auto-advancing to showdown", gameId);
             gameStateService.broadcastAutoAdvanceNotification(gameId, game);
-            autoAdvanceToShowdown(gameId);
+            eventPublisher.publishEvent(new AutoAdvanceEvent(gameId));
             return;
         }
 
@@ -210,7 +213,7 @@ public class PlayerActionService {
                 gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
 
                 // Delay before starting the new hand, on a different thread
-                startNewHandAfterDelay(gameId, 3000);
+                eventPublisher.publishEvent(new StartNewHandEvent(gameId, 3000));
                 break;
             case SHOWDOWN:
                 logger.warn("Game {} is already in SHOWDOWN phase", gameId);
@@ -218,100 +221,4 @@ public class PlayerActionService {
         }
     }
 
-    @Async("gameExecutor")
-    public void startNewHandAfterDelay(String gameId, long delay) {
-        try {
-            Thread.sleep(delay);
-            logger.info("Starting new hand after River showdown for game {}", gameId);
-            gameLifecycleService.startNewHand(gameId);
-        } catch (InterruptedException e) {
-            logger.error("Error during River showdown delay for game {}: {}", gameId, e.getMessage());
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            logger.error("Error starting new hand after River showdown for game {}: {}",
-                    gameId, e.getMessage(), e);
-        }
-
-    }
-
-
-    /**
-     * Automatically advances the game to showdown when all active players are
-     * all-in.
-     * Deals remaining community cards with appropriate timing delays between each
-     * phase
-     * and conducts showdown. Runs in a separate thread to avoid blocking.
-     *
-     * @param gameId the unique identifier of the game to advance
-     */
-    private void autoAdvanceToShowdown(String gameId) {
-        Game game = gameLifecycleService.getGame(gameId);
-        if (game == null)
-            return;
-
-        logger.info("Starting auto-advance to showdown for game: {}", gameId);
-        gameStateService.broadcastGameStateWithAutoAdvance(gameId, game, true,
-                "All players are all-in. Auto-advancing to showdown...");
-
-        showDownExecutor(gameId);
-    }
-
-    @Async("gameExecutor")
-    public void showDownExecutor(String gameId) {
-        try {
-            Game game = gameLifecycleService.getGame(gameId);  // Fetch game inside method
-            if (game == null) return;
-            GamePhase currentPhase = game.getCurrentPhase();
-
-            // Deal remaining cards with delays
-            if (currentPhase == GamePhase.PRE_FLOP) {
-                Thread.sleep(2000);
-                game.dealFlop();
-                logger.info("Auto-dealt FLOP for game {}", gameId);
-                gameStateService.broadcastGameStateWithAutoAdvance(gameId, game, true,
-                        "Dealing flop...");
-                currentPhase = GamePhase.FLOP;
-            }
-
-            if (currentPhase == GamePhase.FLOP) {
-                Thread.sleep(2000);
-                game.dealTurn();
-                logger.info("Auto-dealt TURN for game {}", gameId);
-                gameStateService.broadcastGameStateWithAutoAdvance(gameId, game, true,
-                        "Dealing turn...");
-                currentPhase = GamePhase.TURN;
-            }
-
-            if (currentPhase == GamePhase.TURN) {
-                Thread.sleep(2000);
-                game.dealRiver();
-                logger.info("Auto-dealt RIVER for game {}", gameId);
-                gameStateService.broadcastGameStateWithAutoAdvance(gameId, game, true,
-                        "Dealing river...");
-            }
-
-            // Conduct showdown
-            Thread.sleep(2000);
-            logger.info("Auto-advance showdown for game {}", gameId);
-            int potBeforeDistribution = game.getPot();
-            List<Player> winners = game.conductShowdown();
-
-            int winningsPerPlayer = winners.isEmpty() ? 0 : potBeforeDistribution / winners.size();
-            gameStateService.broadcastShowdownResults(gameId, game, winners, winningsPerPlayer);
-            gameStateService.broadcastAutoAdvanceComplete(gameId, game);
-
-            // Start the new hand after delay
-            Thread.sleep(5000);
-            logger.info("Starting new hand after auto-advance for game {}", gameId);
-            gameLifecycleService.startNewHand(gameId);
-
-        } catch (InterruptedException e) {
-            logger.error("Auto-advance interrupted for game {}: {}", gameId, e.getMessage());
-            Thread.currentThread().interrupt();
-        } catch (Exception e) {
-            logger.error("Error during auto-advance for game {}: {}", gameId, e.getMessage(), e);
-        }
-
-
-    }
 }
