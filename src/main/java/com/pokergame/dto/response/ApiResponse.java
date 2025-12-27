@@ -7,20 +7,19 @@ package com.pokergame.dto.response;
  * @param <T> the type of data being returned
  */
 public record ApiResponse<T>(
-        boolean success,
         String message,
         T data) {
     /**
      * Creates a successful response with data.
      */
     public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(true, message, data);
+        return new ApiResponse<>(message, data);
     }
 
     /**
      * Creates a successful response without data.
      */
     public static <T> ApiResponse<T> success(String message) {
-        return new ApiResponse<>(true, message, null);
+        return new ApiResponse<>(message, null);
     }
 }

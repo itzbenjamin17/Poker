@@ -72,7 +72,7 @@ public class RoomService {
         roomHosts.put(roomId, request.getPlayerName());
 
         messagingTemplate.convertAndSend("/rooms" + roomId,
-                new ApiResponse<>(true, ResponseMessage.ROOM_CREATED.getMessage(), getRoomData(roomId)));
+                new ApiResponse<>(ResponseMessage.ROOM_CREATED.getMessage(), getRoomData(roomId)));
 
         logger.info("Room created: {} (ID: {}) by host: {}",
                 request.getRoomName(), roomId, request.getPlayerName());
@@ -133,7 +133,7 @@ public class RoomService {
         logger.info("Player {} joined room: {}", joinRequest.playerName(), room.getRoomName());
 
         messagingTemplate.convertAndSend("/rooms" + roomId,
-                new ApiResponse<>(true, ResponseMessage.PLAYER_JOINED.getMessage(), getRoomData(roomId)));
+                new ApiResponse<>(ResponseMessage.PLAYER_JOINED.getMessage(), getRoomData(roomId)));
 
         return roomId;
     }
@@ -159,20 +159,20 @@ public class RoomService {
             // Host is leaving - destroy the entire Room
             logger.info("Host {} leaving room {}, destroying room", playerName, room.getRoomName());
             messagingTemplate.convertAndSend("/rooms" + roomId,
-                    new ApiResponse<>(true, ResponseMessage.ROOM_CLOSED.getMessage(), null));
+                    new ApiResponse<>(ResponseMessage.ROOM_CLOSED.getMessage(), null));
             destroyRoom(roomId);
         } else {
             // Regular player leaving - just remove them from the room
             room.removePlayer(playerName);
             logger.info("Player {} left room: {}", playerName, room.getRoomName());
             messagingTemplate.convertAndSend("/rooms" + roomId,
-                    new ApiResponse<>(true, ResponseMessage.PLAYER_LEFT.getMessage(), getRoomData(roomId)));
+                    new ApiResponse<>(ResponseMessage.PLAYER_LEFT.getMessage(), getRoomData(roomId)));
 
             // If no players left after removal, also destroy the room
             if (room.getPlayers().isEmpty()) {
                 logger.info("No players remaining in room {}, destroying room", room.getRoomName());
                 messagingTemplate.convertAndSend("/rooms" + roomId,
-                        new ApiResponse<>(true, ResponseMessage.ROOM_CLOSED.getMessage(), null));
+                        new ApiResponse<>(ResponseMessage.ROOM_CLOSED.getMessage(), null));
                 destroyRoom(roomId);
             }
         }
