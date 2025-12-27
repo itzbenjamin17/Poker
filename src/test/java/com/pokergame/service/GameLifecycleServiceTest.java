@@ -9,12 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import com.pokergame.exception.BadRequestException;
 import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.exception.UnauthorisedActionException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,6 +42,9 @@ class GameLifecycleServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+
     private GameLifecycleService gameLifecycleService;
 
     private Room testRoom;
@@ -47,7 +52,7 @@ class GameLifecycleServiceTest {
 
     @BeforeEach
     void setUp() {
-        gameLifecycleService = new GameLifecycleService(roomService, handEvaluator, gameStateService, messagingTemplate);
+        gameLifecycleService = new GameLifecycleService(roomService, handEvaluator, gameStateService, messagingTemplate,  applicationEventPublisher);
 
         testRoom = new Room(
                 ROOM_ID,
@@ -399,28 +404,34 @@ class GameLifecycleServiceTest {
         ExecutorService executor = Executors.newFixedThreadPool(numberOfGames);
         CountDownLatch latch = new CountDownLatch(numberOfGames);
         List<String> createdGameIds = new CopyOnWriteArrayList<>();
+        List<String> roomIds = new ArrayList<>();
 
-        // Create 5 different rooms and games concurrently
+        // PHASE 1: SETUP (Single Threaded)
+        // Configure all mocks before any threads start
         for (int i = 0; i < numberOfGames; i++) {
-            final String roomId = "room-" + i;
-            final Room room = new Room(roomId, "Room " + i, "Host" + i, 6, 5, 10, 100, null);
+            String roomId = "room-" + i;
+            roomIds.add(roomId);
+
+            Room room = new Room(roomId, "Room " + i, "Host" + i, 6, 5, 10, 100, null);
             room.addPlayer("Host" + i);
             room.addPlayer("Player" + i);
 
             when(roomService.getRoom(roomId)).thenReturn(room);
+        }
 
+        for (String roomId : roomIds) {
             executor.submit(() -> {
                 try {
                     String gameId = gameLifecycleService.createGameFromRoom(roomId);
                     createdGameIds.add(gameId);
                 } catch (Exception e) {
-                    // Should not happen
                     fail("Concurrent game creation failed: " + e.getMessage());
                 } finally {
                     latch.countDown();
                 }
             });
         }
+
 
         // Wait for all games to be created
         assertTrue(latch.await(10, TimeUnit.SECONDS), "Game creation took too long");
