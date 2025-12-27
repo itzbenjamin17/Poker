@@ -1,4 +1,4 @@
 package com.pokergame.event;
 
-public record StartNewHandEvent(String gameId, long delayInMillis) {}
+public record StartNewHandEvent(String gameId, long delay) {}
 

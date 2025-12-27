@@ -1,4 +1,4 @@
 package com.pokergame.event;
 
-public record GameCleanupEvent(String gameId, long delayInMillis) {}
+public record GameCleanupEvent(String gameId, long delay) {}
 

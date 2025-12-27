@@ -2,6 +2,7 @@ package com.pokergame.service;
 
 import com.pokergame.dto.response.ApiResponse;
 import com.pokergame.enums.ResponseMessage;
+import com.pokergame.event.GameCleanupEvent;
 import com.pokergame.exception.BadRequestException;
 import com.pokergame.exception.ResourceNotFoundException;
 import com.pokergame.exception.UnauthorisedActionException;
@@ -216,25 +217,15 @@ public class GameLifecycleService {
 
         gameStateService.broadcastGameEnd(gameId, winner);
 
-        // Wait a few seconds for players to see the result, then destroy the room, on a different thread
-        gameEndCleanup(gameId, 3000);
+        // Wait a few seconds for players to see the result, then destroy the room and game, on a different thread
+        eventPublisher.publishEvent(new GameCleanupEvent(gameId, 3000));
     }
 
-    @Async("gameExecutor")
-    public void gameEndCleanup(String gameId, long delay) {
-        try {
-            logger.debug("Scheduling cleanup for game {} with {}ms delay", gameId, delay);
-            Thread.sleep(delay);
-
-            // Clean up game and room data
-            activeGames.remove(gameId);
-            roomService.destroyRoom(gameId);
-
-            logger.info("Game {} and associated room cleaned up after game end", gameId);
-        } catch (InterruptedException e) {
-            logger.error("Error during game end cleanup for game {}: {}", gameId, e.getMessage());
-            Thread.currentThread().interrupt();
-        }
+    public void performGameCleanup(String gameId) {
+        // logic moved from gameEndCleanup
+        activeGames.remove(gameId);
+        roomService.destroyRoom(gameId);
+        logger.info("Game {} and associated room cleaned up", gameId);
     }
 
     /**
