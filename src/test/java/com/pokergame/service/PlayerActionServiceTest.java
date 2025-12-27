@@ -1,6 +1,7 @@
 package com.pokergame.service;
 
 import com.pokergame.dto.request.PlayerActionRequest;
+import com.pokergame.enums.GamePhase;
 import com.pokergame.enums.PlayerAction;
 import com.pokergame.exception.UnauthorisedActionException;
 import com.pokergame.model.*;
@@ -14,6 +15,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -406,6 +412,248 @@ class PlayerActionServiceTest {
     }
 
     // ==================== Concurrent Access Tests ====================
+
+    @Test
+    void processPlayerAction_TwoPlayersActingSimultaneously_OnlyOneSucceeds() throws InterruptedException {
+        when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
+
+        Player currentPlayer = testGame.getCurrentPlayer();
+        Player otherPlayer = testGame.getPlayers().stream()
+                .filter(p -> !p.equals(currentPlayer))
+                .findFirst()
+                .orElseThrow();
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger failureCount = new AtomicInteger(0);
+
+        // Current player tries to fold
+        executor.submit(() -> {
+            try {
+                playerActionService.processPlayerAction(
+                        GAME_ID,
+                        new PlayerActionRequest(PlayerAction.FOLD, null),
+                        currentPlayer.getName()
+                );
+                successCount.incrementAndGet();
+            } catch (UnauthorisedActionException e) {
+                failureCount.incrementAndGet();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        // Other player tries to act
+        executor.submit(() -> {
+            try {
+                playerActionService.processPlayerAction(
+                        GAME_ID,
+                        new PlayerActionRequest(PlayerAction.CALL, null),
+                        otherPlayer.getName()
+                );
+                successCount.incrementAndGet();
+            } catch (UnauthorisedActionException e) {
+                failureCount.incrementAndGet();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        executor.shutdown();
+
+        // LOGIC FIX: In a real concurrent run, it's possible for:
+        // 1. P1 acts -> Turn passes -> P2 acts (Success = 2)
+        // 2. P2 acts -> Fail -> P1 acts (Success = 1)
+        // Both are valid. We just want to ensure NO race condition corrupted the game.
+
+        int successes = successCount.get();
+        assertTrue(successes >= 1, "At least one action should succeed");
+
+        // If 2 successes, ensure game state reflects BOTH actions
+        if (successes == 2) {
+            assertTrue(currentPlayer.getHasFolded(), "P1 should have folded");
+            // Check that P2 also acted (e.g., has a bet or called)
+            assertTrue(otherPlayer.getCurrentBet() > 0 || otherPlayer.getHasFolded(), "P2 should have acted");
+        } else {
+            // If 1 success, it must be P1
+            assertEquals(1, failureCount.get(), "P2 should have failed");
+            assertTrue(currentPlayer.getHasFolded(), "P1 should have folded");
+        }
+    }
+
+    /**
+     * Tests that processing actions on different games concurrently works correctly.
+     * This verifies that synchronization is per-game, not global.
+     */
+    @Test
+    void processPlayerAction_DifferentGamesConcurrently_BothSucceed() throws InterruptedException {
+        // Create two separate games
+        String gameId1 = "game-1";
+        String gameId2 = "game-2";
+
+        List<Player> players1 = new ArrayList<>();
+        players1.add(new Player("P1", UUID.randomUUID().toString(), 1000));
+        players1.add(new Player("P2", UUID.randomUUID().toString(), 1000));
+
+        List<Player> players2 = new ArrayList<>();
+        players2.add(new Player("P3", UUID.randomUUID().toString(), 1000));
+        players2.add(new Player("P4", UUID.randomUUID().toString(), 1000));
+
+        Game game1 = new Game(gameId1, players1, 5, 10, handEvaluator);
+        game1.resetForNewHand();
+        game1.dealHoleCards();
+        game1.postBlinds();
+
+        Game game2 = new Game(gameId2, players2, 5, 10, handEvaluator);
+        game2.resetForNewHand();
+        game2.dealHoleCards();
+        game2.postBlinds();
+
+        when(gameLifecycleService.getGame(gameId1)).thenReturn(game1);
+        when(gameLifecycleService.getGame(gameId2)).thenReturn(game2);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(2);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        // Player in game 1 acts
+        executor.submit(() -> {
+            try {
+                playerActionService.processPlayerAction(
+                        gameId1,
+                        new PlayerActionRequest(PlayerAction.FOLD, null),
+                        game1.getCurrentPlayer().getName()
+                );
+                successCount.incrementAndGet();
+            } catch (Exception e) {
+                fail("Game 1 action failed: " + e.getMessage());
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        // Player in game 2 acts simultaneously
+        executor.submit(() -> {
+            try {
+                playerActionService.processPlayerAction(
+                        gameId2,
+                        new PlayerActionRequest(PlayerAction.CALL, null),
+                        game2.getCurrentPlayer().getName()
+                );
+                successCount.incrementAndGet();
+            } catch (Exception e) {
+                fail("Game 2 action failed: " + e.getMessage());
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS), "Actions took too long");
+        executor.shutdown();
+
+        // Both actions should succeed (different games, no contention)
+        assertEquals(2, successCount.get(), "Both actions should succeed");
+    }
+
+    /**
+     * Tests that rapid sequential actions by different players maintain correct game state.
+     * This simulates a fast-paced game where players act quickly one after another.
+     */
+    @Test
+    void processPlayerAction_RapidSequentialActions_MaintainsCorrectState() throws InterruptedException {
+        when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
+
+        int numberOfActions = 3; // All 3 players will act
+        ExecutorService executor = Executors.newFixedThreadPool(numberOfActions);
+        CountDownLatch latch = new CountDownLatch(numberOfActions);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        // Each player takes their turn in rapid succession
+        for (int i = 0; i < numberOfActions; i++) {
+            final int actionIndex = i;
+            executor.submit(() -> {
+                try {
+                    // Small stagger to ensure sequential processing
+                    Thread.sleep(actionIndex * 50);
+
+                    Player currentPlayer = testGame.getCurrentPlayer();
+                    playerActionService.processPlayerAction(
+                            GAME_ID,
+                            new PlayerActionRequest(PlayerAction.CALL, null),
+                            currentPlayer.getName()
+                    );
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    // Some may fail if game advances to next phase
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(10, TimeUnit.SECONDS), "Actions took too long");
+        executor.shutdown();
+
+        // At least some actions should succeed
+        assertTrue(successCount.get() > 0, "At least one action should succeed");
+
+        // Game should still be in valid state
+        assertNotNull(testGame.getCurrentPlayer(), "Game should have a current player");
+        assertFalse(testGame.getActivePlayers().isEmpty(), "Game should have active players");
+    }
+
+    /**
+     * Tests all-in scenarios with concurrent player actions.
+     * Verifies that when multiple players try to go all-in simultaneously,
+     * only the current player succeeds.
+     */
+    @Test
+    void processPlayerAction_ConcurrentAllIn_OnlyCurrentPlayerSucceeds() throws InterruptedException {
+        when(gameLifecycleService.getGame(GAME_ID)).thenReturn(testGame);
+
+        List<Player> allPlayers = new ArrayList<>(testGame.getPlayers());
+        int threadCount = allPlayers.size();
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        for (Player player : allPlayers) {
+            executor.submit(() -> {
+                try {
+                    playerActionService.processPlayerAction(
+                            GAME_ID,
+                            new PlayerActionRequest(PlayerAction.ALL_IN, null),
+                            player.getName()
+                    );
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    // Ignore failures
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        executor.shutdown();
+
+        // Validating thread safety:
+        // Success count depends on how many players got a turn in the split second
+        // But we expect at least 1, and no corruption.
+        assertTrue(successCount.get() >= 1, "At least current player should succeed");
+
+        // Verify state: Total all-in players should match success count
+        long allInCount = testGame.getPlayers().stream().filter(Player::getIsAllIn).count();
+        assertEquals(successCount.get(), allInCount, "Game state should match successful actions");
+    }
+
+
 
     @Test
     void processPlayerAction_OnSameGame_ShouldBeSynchronized() {

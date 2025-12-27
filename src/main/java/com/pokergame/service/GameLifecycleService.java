@@ -11,9 +11,11 @@ import com.pokergame.model.Room;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -42,7 +44,7 @@ public class GameLifecycleService {
     }
 
     // Game state storage
-    private final Map<String, Game> activeGames = new HashMap<>();
+    private final Map<String, Game> activeGames = new ConcurrentHashMap<>();
 
     /**
      * Creates and initialises an actual poker game from an existing room.
@@ -79,7 +81,7 @@ public class GameLifecycleService {
         activeGames.put(roomId, game);
 
         // Broadcast to all players in the room that the game has started
-        Map<String, Object> gameStartMessage = new HashMap<>();
+        Map<String, Object> gameStartMessage = new ConcurrentHashMap<>();
         gameStartMessage.put("gameId", roomId);
         gameStartMessage.put("message", "Game started! Redirecting to game...");
 
@@ -213,23 +215,26 @@ public class GameLifecycleService {
         }
 
         gameStateService.broadcastGameEnd(gameId, winner);
-        // TODO: spawning a separate thread for each game end might not be scalable, use
-        // a scheduled task executor instead
-        // Wait a few seconds for players to see the result, then destroy the room
-        new Thread(() -> {
-            try {
-                Thread.sleep(5000); // 5 seconds
 
-                // Clean up game and room data
-                activeGames.remove(gameId);
-                roomService.destroyRoom(gameId);
+        // Wait a few seconds for players to see the result, then destroy the room, on a different thread
+        gameEndCleanup(gameId, 3000);
+    }
 
-                logger.info("Game {} and associated room cleaned up after game end", gameId);
-            } catch (InterruptedException e) {
-                logger.error("Error during game end cleanup for game {}: {}", gameId, e.getMessage());
-                Thread.currentThread().interrupt();
-            }
-        }).start();
+    @Async("gameExecutor")
+    public void gameEndCleanup(String gameId, long delay) {
+        try {
+            logger.debug("Scheduling cleanup for game {} with {}ms delay", gameId, delay);
+            Thread.sleep(delay);
+
+            // Clean up game and room data
+            activeGames.remove(gameId);
+            roomService.destroyRoom(gameId);
+
+            logger.info("Game {} and associated room cleaned up after game end", gameId);
+        } catch (InterruptedException e) {
+            logger.error("Error during game end cleanup for game {}: {}", gameId, e.getMessage());
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

@@ -16,6 +16,8 @@ import org.springframework.http.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -48,7 +50,7 @@ class SecurityIntegrationTest {
 
         // Create a room and get a valid token for testing secured endpoints
         CreateRoomRequest createRequest = new CreateRoomRequest(
-                "TestRoom" + System.currentTimeMillis(),
+                "TestRoom" + UUID.randomUUID().toString().substring(0, 8),
                 "TestHost",
                 6, 10, 20, 1000, null);
 
@@ -64,7 +66,7 @@ class SecurityIntegrationTest {
         @DisplayName("POST /api/room/create - should succeed without token and return JWT")
         void createRoom_shouldSucceed_withoutToken() throws Exception {
             CreateRoomRequest request = new CreateRoomRequest(
-                    "NewRoom" + System.currentTimeMillis(),
+                    "NewRoom" + UUID.randomUUID().toString().substring(0, 8),
                     "NewPlayer",
                     6, 10, 20, 1000, null);
 
@@ -85,7 +87,7 @@ class SecurityIntegrationTest {
         @DisplayName("POST /api/room/join - should succeed without token and return JWT")
         void joinRoom_shouldSucceed_withoutToken() throws Exception {
             // First create a room
-            String roomName = "JoinTestRoom" + System.currentTimeMillis();
+            String roomName = "JoinTestRoom" + UUID.randomUUID().toString().substring(0, 8);
             CreateRoomRequest createRequest = new CreateRoomRequest(
                     roomName, "Host", 6, 10, 20, 1000, null);
 
@@ -191,7 +193,7 @@ class SecurityIntegrationTest {
         @DisplayName("POST /api/room/{roomId}/start-game - should fail when not host")
         void startGame_shouldFail_whenNotHost() throws Exception {
             // Create a room as Host
-            String roomName = "AuthTestRoom" + System.currentTimeMillis();
+            String roomName = "AuthTestRoom" + UUID.randomUUID().toString().substring(0, 8);
             CreateRoomRequest createRequest = new CreateRoomRequest(
                     roomName, "ActualHost", 6, 10, 20, 1000, null);
 
@@ -233,7 +235,7 @@ class SecurityIntegrationTest {
         @DisplayName("POST /api/room/{roomId}/start-game - should succeed when host with enough players")
         void startGame_shouldSucceed_whenHost() throws Exception {
             // Create a room as Host
-            String roomName = "StartGameRoom" + System.currentTimeMillis();
+            String roomName = "StartGameRoom" + UUID.randomUUID().toString().substring(0, 8);
             CreateRoomRequest createRequest = new CreateRoomRequest(
                     roomName, "GameHost", 6, 10, 20, 1000, null);
 
