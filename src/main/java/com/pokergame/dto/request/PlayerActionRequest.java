@@ -14,7 +14,9 @@ public record PlayerActionRequest(
         @NotNull(message = "Action is required") PlayerAction action,
 
         // Amount is optional - only needed for BET and RAISE actions
-        @Min(value = 1, message = "Bet/raise amount must be at least 1 chip") @Max(value = 10000, message = "Bet/raise amount cannot exceed 10,000 chips") Integer amount
+        @Min(value = 1, message = "Bet/raise amount must be at least 1 chip")
+        @Max(value = 10000, message = "Bet/raise amount cannot exceed 10,000 chips")
+        Integer amount
 
 ) {
     public PlayerActionRequest {
